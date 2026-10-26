@@ -23,7 +23,8 @@ This project combines web scraping, LLM-powered entity extraction, graph analysi
 graphrag/
 ├── scrape_info.ipynb              # Web scraping & text enrichment
 ├── graphrag_ai_copyright.ipynb    # GraphRAG pipeline, queries & visualization
-├── ai_copyright_dataset.csv       # Scraped articles/videos (810 rows)
+├── ai_copyright_dataset.csv       # Provided dataset (13 article records)
+├── graphrag_ai_copyright_colab.ipynb # Original-style pipeline for Google Colab
 ├── graph_data.json                # Extracted knowledge graph (nodes + edges)
 ├── ai_copyright_graph.html        # Interactive visualization (generated output)
 ├── graph_template.html            # HTML/D3.js template for visualization
@@ -63,6 +64,34 @@ graphrag/
    ```
 
 ## Usage
+
+### Google Colab
+
+Upload [graphrag_ai_copyright_colab.ipynb](./graphrag_ai_copyright_colab.ipynb)
+to Colab and run its cells in order using a CPU runtime. It preserves the
+original notebook's sections 0–15, LlamaIndex extraction, hierarchical Leiden,
+community summaries, D3 visualization, and two-stage query engine. No helper
+modules or separate HTML template are needed.
+
+The default `INPUT_MODE = "csv"` prompts for the provided
+[ai_copyright_dataset.csv](./ai_copyright_dataset.csv); no SerpAPI key is needed.
+Set `OPENAI_API_KEY` in Colab Secrets with notebook access enabled, or use the
+hidden prompt. Defaults process three articles and up to three chunks per
+article. Extraction, summaries, and questions make paid OpenAI calls.
+
+For a new topic, edit `TOPIC`, `SEARCH_QUERIES`, `QUESTIONS`, `YOUR_QUESTION`,
+and `OUTPUT_NAME` in section 2, and both ontology lists in section 3.
+Choose `INPUT_MODE = "search"` and supply `SERPAPI_API_KEY` to discover URLs
+with SerpAPI and fetch article text with Trafilatura. This optional collection
+mode handles articles, not YouTube transcripts. Alternatively upload your own
+CSV with a `full_text` column. Changing only the topic label does not change
+the underlying evidence. Download the results ZIP before the Colab runtime ends.
+
+The provided dataset was collected by the separate scraping workflow below:
+SerpAPI supplies URLs/search metadata, while Trafilatura and the YouTube
+Transcript API supply article text and video transcripts respectively.
+The checked-in CSV currently contains 13 article records; quoted multiline
+article text means CSV line count is not record count.
 
 ### Step 1 — Scrape content (`scrape_info.ipynb`)
 
