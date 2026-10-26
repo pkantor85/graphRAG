@@ -23,7 +23,7 @@ This project combines web scraping, LLM-powered entity extraction, graph analysi
 graphrag/
 ├── scrape_info.ipynb              # Web scraping & text enrichment
 ├── graphrag_ai_copyright.ipynb    # GraphRAG pipeline, queries & visualization
-├── ai_copyright_dataset.csv       # Provided dataset (13 article records)
+├── ai_copyright_dataset.csv       # Scraped dataset (6 on-topic article records)
 ├── graphrag_ai_copyright_colab.ipynb # Original-style pipeline for Google Colab
 ├── graph_data.json                # Extracted knowledge graph (nodes + edges)
 ├── ai_copyright_graph.html        # Interactive visualization (generated output)
@@ -90,13 +90,14 @@ the underlying evidence. Download the results ZIP before the Colab runtime ends.
 The provided dataset was collected by the separate scraping workflow below:
 SerpAPI supplies URLs/search metadata, while Trafilatura and the YouTube
 Transcript API supply article text and video transcripts respectively.
-The checked-in CSV currently contains 13 article records; quoted multiline
+The checked-in CSV currently contains 6 on-topic article records; quoted multiline
 article text means CSV line count is not record count.
 
 ### Step 1 — Scrape content (`scrape_info.ipynb`)
 
 Searches Google for AI copyright/IP articles and YouTube videos, then enriches them with full article text (via Trafilatura) and video transcripts (via YouTube Transcript API).
 You can swap out the search queries with any other search terms relevant to your project.
+Pages with fewer than 500 characters (login walls, bot checks) or fewer than 5 topic-term mentions per 1,000 words are dropped; update `TOPIC_TERMS` in the notebook when researching a different topic.
 
 Output: `ai_copyright_dataset.csv`
 
