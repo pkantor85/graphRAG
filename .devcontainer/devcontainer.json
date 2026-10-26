@@ -1,0 +1,23 @@
+{
+  "name": "GraphRAG",
+  "image": "mcr.microsoft.com/vscode/devcontainers/universal:latest",
+  "postCreateCommand": "bash setup_env.sh",
+  "secrets": {
+    "OPENAI_API_KEY": {
+      "description": "OpenAI API key — entity extraction, community summaries and answers.",
+      "documentationUrl": "https://platform.openai.com/api-keys"
+    },
+    "SERPAPI": {
+      "description": "SerpAPI key — only needed to collect articles for a new topic (input_mode = search).",
+      "documentationUrl": "https://serpapi.com/manage-api-key"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python", "ms-toolsai.jupyter"],
+      "settings": {
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python"
+      }
+    }
+  }
+}

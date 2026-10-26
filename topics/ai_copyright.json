@@ -1,0 +1,57 @@
+{
+  "_comment": "GraphRAG topic config — see PIPELINE_INPUTS.md for the meaning of every key.",
+
+  "topic": "AI copyright, governance and intellectual property",
+  "output_name": "ai_copyright",
+
+  "input_mode": "csv",
+  "dataset_file": "ai_copyright_dataset.csv",
+
+  "search_queries": ["AI intellectual property", "copyright Generative AI"],
+  "results_per_query": 10,
+  "include_videos": false,
+  "topic_terms": ["copyright", "intellectual property", "\\bpatent", "trademark", "fair use", "infring", "licens"],
+  "min_text_chars": 500,
+  "min_topic_mentions_per_1k_words": 5,
+
+  "entity_types": {
+    "ORGANIZATION": "Companies, labs, industry groups, publishers (e.g. OpenAI, Getty Images, RIAA)",
+    "PERSON": "Executives, policymakers, judges, artists (e.g. Sam Altman, Thierry Breton)",
+    "LEGISLATION": "Laws, acts, regulations, official guidance (e.g. EU AI Act, DMCA, Copyright Act)",
+    "LEGAL_CASE": "Lawsuits and court rulings (e.g. NYT v. OpenAI, Getty v. Stability AI)",
+    "CONCEPT": "Abstract ideas and doctrines (e.g. fair use, training data, authorship)",
+    "GOVERNMENT": "Nations, regulators, courts, agencies (e.g. EU, US Copyright Office)",
+    "AI_SYSTEM": "Specific AI models or products (e.g. GPT-4, Stable Diffusion, Gemini)"
+  },
+  "relation_types": {
+    "FILED_AGAINST": "Plaintiff (ORGANIZATION/PERSON) brings a LEGAL_CASE or sues a party",
+    "DEFENDANT_IN": "ORGANIZATION/PERSON is the defendant in a LEGAL_CASE",
+    "REGULATES": "GOVERNMENT/LEGISLATION governs an ORGANIZATION, AI_SYSTEM or CONCEPT",
+    "ADVOCATES_FOR": "ORGANIZATION/PERSON supports a CONCEPT, policy or position",
+    "OPPOSES": "ORGANIZATION/PERSON/GOVERNMENT opposes a LEGISLATION, CONCEPT or position",
+    "TRAINED_ON": "AI_SYSTEM was trained on a CONCEPT/dataset/content type",
+    "PART_OF": "PERSON/ORGANIZATION belongs to or works for an ORGANIZATION/GOVERNMENT",
+    "REFERENCES": "LEGAL_CASE/LEGISLATION/GOVERNMENT cites, interprets or addresses a CONCEPT",
+    "DEVELOPS": "ORGANIZATION builds or operates an AI_SYSTEM"
+  },
+
+  "questions": [
+    "What are the main legal arguments being made around AI copyright and training data?",
+    "Which companies are involved in AI copyright or governance disputes, and what are their positions?",
+    "How are different governments (e.g. EU, US and UK) approaching AI governance and copyright?",
+    "What is the role of fair use in AI copyright disputes?"
+  ],
+
+  "extraction_model": "gpt-4o-mini",
+  "query_model": "gpt-4o",
+  "max_articles": 50,
+  "chunk_size": 1024,
+  "chunk_overlap": 100,
+  "max_chunks_per_article": 0,
+  "max_paths_per_chunk": 20,
+  "num_workers": 4,
+  "max_cluster_size": 10,
+  "summary_context_chars": 20000,
+  "top_communities": 10,
+  "output_dir": "outputs"
+}

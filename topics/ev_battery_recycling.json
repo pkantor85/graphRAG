@@ -1,0 +1,55 @@
+{
+  "_comment": "Example of a NEW topic collected live with SerpAPI. Copy topics/TEMPLATE.json to start your own.",
+
+  "topic": "Electric vehicle battery recycling and second-life batteries",
+  "output_name": "ev_battery_recycling",
+
+  "input_mode": "search",
+  "search_queries": ["EV battery recycling companies", "lithium-ion battery recycling regulation"],
+  "results_per_query": 6,
+  "include_videos": false,
+  "topic_terms": ["recycl", "battery", "batteries", "lithium", "cathode", "black mass"],
+  "min_text_chars": 500,
+  "min_topic_mentions_per_1k_words": 5,
+
+  "entity_types": {
+    "ORGANIZATION": "Companies, start-ups, OEMs, research institutes (e.g. Redwood Materials, Tesla)",
+    "PERSON": "Executives, researchers, policymakers",
+    "GOVERNMENT": "Countries, regulators and agencies (e.g. European Commission, US DOE)",
+    "REGULATION": "Laws, directives, standards, subsidies (e.g. EU Battery Regulation, Inflation Reduction Act)",
+    "TECHNOLOGY": "Recycling or battery technologies (e.g. hydrometallurgy, direct recycling, LFP)",
+    "MATERIAL": "Raw or recovered materials (e.g. lithium, cobalt, nickel, black mass)",
+    "FACILITY": "Plants, gigafactories, recycling sites",
+    "CONCEPT": "Ideas, markets and metrics (e.g. circular economy, recovery rate, second-life use)"
+  },
+  "relation_types": {
+    "OPERATES": "ORGANIZATION runs a FACILITY",
+    "DEVELOPS": "ORGANIZATION/PERSON develops or uses a TECHNOLOGY",
+    "RECOVERS": "TECHNOLOGY/FACILITY/ORGANIZATION recovers a MATERIAL",
+    "SUPPLIES": "ORGANIZATION supplies MATERIAL or batteries to another ORGANIZATION",
+    "PARTNERS_WITH": "ORGANIZATION collaborates or has a deal with another ORGANIZATION",
+    "REGULATES": "GOVERNMENT/REGULATION sets rules or targets for an ORGANIZATION, MATERIAL or CONCEPT",
+    "FUNDS": "GOVERNMENT/ORGANIZATION finances an ORGANIZATION or FACILITY",
+    "PART_OF": "PERSON/ORGANIZATION belongs to an ORGANIZATION/GOVERNMENT",
+    "LOCATED_IN": "FACILITY/ORGANIZATION is located in a GOVERNMENT (country/region)"
+  },
+
+  "questions": [
+    "Which companies lead EV battery recycling and what technologies do they use?",
+    "How do regulations in different regions shape battery recycling?",
+    "Which materials are recovered and what are the main economic or technical challenges?"
+  ],
+
+  "extraction_model": "gpt-4o-mini",
+  "query_model": "gpt-4o",
+  "max_articles": 8,
+  "chunk_size": 1024,
+  "chunk_overlap": 100,
+  "max_chunks_per_article": 6,
+  "max_paths_per_chunk": 20,
+  "num_workers": 4,
+  "max_cluster_size": 10,
+  "summary_context_chars": 20000,
+  "top_communities": 10,
+  "output_dir": "outputs"
+}

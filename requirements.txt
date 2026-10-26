@@ -1,0 +1,24 @@
+# GraphRAG pipeline dependencies.
+# graspologic requires Python >=3.9,<3.13 — use Python 3.12 (see setup_env.sh).
+llama-index-core>=0.12,<0.15
+llama-index-llms-openai>=0.3,<0.7
+graspologic>=3.4,<4
+networkx>=3.2
+pandas>=2.0
+pydantic>=2.0
+nest-asyncio>=1.6
+python-dotenv>=1.0
+
+# Optional: only needed to collect a new dataset (INPUT_MODE = "search")
+google-search-results>=2.4
+trafilatura>=1.12
+youtube-transcript-api>=1.0
+requests>=2.31
+
+# Notebook kernel (+ widgets for progress bars, pip so `%pip install` works in the kernel)
+ipykernel>=6.29
+ipywidgets>=8.1
+pip
+
+# Offline tests
+pytest>=8

@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electric vehicle battery recycling and second-life batteries — Knowledge Graph</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg:           #0a0e1a;
+    --surface:      #111827;
+    --border:       #1e2d45;
+    --text:         #e2e8f0;
+    --text-muted:   #64748b;
+    --accent:       #38bdf8;
+
+    --c-org:        #4ECDC4;
+    --c-person:     #FF6B6B;
+    --c-leg:        #60a5fa;
+    --c-case:       #FBBF24;
+    --c-concept:    #86efac;
+    --c-gov:        #c084fc;
+    --c-ai:         #fb923c;
+    --c-other:      #94a3b8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ─────────────────────────────────────────────────── */
+  header {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .stats {
+    margin-left: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    gap: 16px;
+  }
+
+  .stats span { color: var(--text); }
+
+  /* ── Layout ──────────────────────────────────────────────────── */
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ─────────────────────────────────────────────────── */
+  .sidebar {
+    width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+
+  .sidebar-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+
+  /* ── Legend items ────────────────────────────────────────────── */
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 6px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.15s;
+    user-select: none;
+  }
+
+  .legend-item:hover { background: rgba(255,255,255,0.04); }
+
+  .legend-item.disabled { opacity: 0.3; }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-name {
+    font-size: 12px;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .legend-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  /* ── Search ──────────────────────────────────────────────────── */
+  .search-wrap { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+
+  input[type="search"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input[type="search"]:focus { border-color: var(--accent); }
+  input[type="search"]::placeholder { color: var(--text-muted); }
+
+  /* ── Controls ────────────────────────────────────────────────── */
+  .controls { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+
+  .control-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .control-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .btn-row { display: flex; gap: 6px; margin-top: 4px; }
+
+  button {
+    flex: 1;
+    padding: 6px 8px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  button:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Canvas ──────────────────────────────────────────────────── */
+  #graph-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  svg { width: 100%; height: 100%; }
+
+  /* ── Links ───────────────────────────────────────────────────── */
+  .link {
+    stroke: #1e3a5f;
+    stroke-opacity: 0.7;
+    stroke-width: 1.5px;
+    transition: stroke 0.2s, stroke-opacity 0.2s;
+  }
+
+  .link.highlighted { stroke: var(--accent); stroke-opacity: 1; stroke-width: 2px; }
+  .link.dimmed      { stroke-opacity: 0.08; }
+
+  /* ── Edge labels ─────────────────────────────────────────────── */
+  .edge-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    fill: #334155;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .edge-label.visible { opacity: 1; }
+
+  /* ── Nodes ───────────────────────────────────────────────────── */
+  .node circle {
+    stroke: rgba(255,255,255,0.15);
+    stroke-width: 1.5px;
+    cursor: pointer;
+    transition: stroke 0.15s, stroke-width 0.15s, filter 0.15s;
+  }
+
+  .node circle:hover {
+    stroke: white;
+    stroke-width: 2.5px;
+    filter: brightness(1.3);
+  }
+
+  .node.selected circle { stroke: white; stroke-width: 3px; filter: brightness(1.4); }
+  .node.dimmed circle   { opacity: 0.12; }
+  .node.dimmed text     { opacity: 0.05; }
+
+  .node text {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 11px;
+    fill: var(--text);
+    pointer-events: none;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    transition: opacity 0.2s;
+  }
+
+  /* ── Tooltip ─────────────────────────────────────────────────── */
+  #tooltip {
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 13px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    max-width: 260px;
+    z-index: 10;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+
+  #tooltip.visible { opacity: 1; }
+
+  .tt-name {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 3px;
+    color: var(--text);
+  }
+
+  .tt-type {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+
+  .tt-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 6px;
+  }
+
+  .tt-connections {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    padding-top: 6px;
+    margin-top: 4px;
+  }
+
+  .tt-connections span { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Knowledge Graph — Electric vehicle battery recycling and second-life batteries</h1>
+  <div class="stats">
+    nodes <span id="stat-nodes">—</span> &nbsp;|&nbsp;
+    edges <span id="stat-edges">—</span> &nbsp;|&nbsp;
+    communities <span id="stat-communities">—</span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ── Sidebar ─────────────────────────────────────── -->
+  <aside class="sidebar">
+
+    <div class="search-wrap">
+      <input type="search" id="search" placeholder="Search nodes…">
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Entity Types</div>
+      <div id="legend"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Controls</div>
+      <div class="controls">
+        <div class="control-row">
+          <div class="control-label">Link distance</div>
+          <input type="range" id="link-distance" min="40" max="300" value="120">
+        </div>
+        <div class="control-row">
+          <div class="control-label">Charge strength</div>
+          <input type="range" id="charge" min="-800" max="-50" value="-300">
+        </div>
+        <div class="control-row">
+          <div class="control-label">Edge labels</div>
+          <input type="range" id="label-threshold" min="0" max="10" value="3"
+                 title="Show labels on edges connecting nodes with degree ≥ this value">
+        </div>
+        <div class="btn-row">
+          <button id="btn-reset">Reset zoom</button>
+          <button id="btn-all">Show all</button>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── Graph canvas ────────────────────────────────── -->
+  <div id="graph-container">
+    <svg id="graph">
+      <defs>
+        <marker id="arrow" viewBox="0 -4 10 8" refX="18" refY="0"
+                markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,-4L10,0L0,4" fill="#1e3a5f"/>
+        </marker>
+      </defs>
+      <g id="root"></g>
+    </svg>
+    <div id="tooltip"></div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// DATA — injected by Python (replace {"title": "Electric vehicle battery recycling and second-life batteries", "nodes": [{"id": "lithium-ion batteries", "label": "lithium-ion batteries", "type": "MATERIAL", "description": "Lithium-ion batteries are rechargeable batteries used in various applications, including electric vehicles, and require proper recycling to recover critical materials. Lithium-ion batteries are rechargeable batteries commonly used in consumer electronics and electric vehicles, which require proper recycling at end-of-life. Lithium-ion batteries are rechargeable batteries commonly used in consumer electronics and electric vehicles.", "community": 10, "sources": ["S1", "S2", "S5"]}, {"id": "u.s. geological survey", "label": "U.S. Geological Survey", "type": "ORGANIZATION", "description": "The U.S. Geological Survey provides information on critical minerals, which are essential for the production of lithium-ion batteries.", "community": 10, "sources": ["S1"]}, {"id": "epa", "label": "EPA", "type": "GOVERNMENT", "description": "The Environmental Protection Agency recommends recycling lithium-ion batteries to prevent environmental harm and recover valuable materials. The Environmental Protection Agency is responsible for regulating hazardous waste and promoting recycling initiatives for lithium-ion batteries. The Environmental Protection Agency conducts workshops and releases reports on the recycling and disposal of lithium-ion batteries.", "community": 11, "sources": ["S1", "S2"]}, {"id": "call2recycle", "label": "Call2Recycle", "type": "ORGANIZATION", "description": "Call2Recycle is an organization that provides resources for recycling lithium-ion batteries and promotes battery safety. Call2Recycle is an organization that promotes battery recycling and provides information on proper management of used lithium-ion batteries. Call2Recycle operates as the primary Battery Stewardship Organization in multiple states, helping battery and product manufacturers fulfill recycling requirements.", "community": 13, "sources": ["S1", "S2"]}, {"id": "avoid the spark. be battery safety smart. campaign", "label": "Avoid the Spark. Be Battery Safety Smart. campaign", "type": "CONCEPT", "description": "This campaign aims to educate consumers about the safe management and recycling of used lithium-ion batteries.", "community": 13, "sources": ["S1"]}, {"id": "earth 911", "label": "Earth 911", "type": "ORGANIZATION", "description": "Earth 911 is a resource for finding recycling locations for lithium-ion batteries and other materials.", "community": 10, "sources": ["S1"]}, {"id": "critical minerals", "label": "critical minerals", "type": "MATERIAL", "description": "Critical minerals such as cobalt, graphite, and lithium are essential components of lithium-ion batteries and are economically important.", "community": 10, "sources": ["S1"]}, {"id": "u.s. department of transportation", "label": "U.S. Department of Transportation", "type": "GOVERNMENT", "description": "The U.S. Department of Transportation oversees regulations and campaigns related to the safe transportation of hazardous materials, including batteries.", "community": 10, "sources": ["S1"]}, {"id": "resource conservation and recovery act", "label": "Resource Conservation and Recovery Act", "type": "REGULATION", "description": "The Resource Conservation and Recovery Act establishes regulations for the management of hazardous waste, including lithium-ion batteries.", "community": 10, "sources": ["S1"]}, {"id": "osha", "label": "OSHA", "type": "GOVERNMENT", "description": "The Occupational Safety and Health Administration provides guidelines to ensure safety in workplaces handling lithium-ion batteries. The Occupational Safety and Health Administration issues guidelines to ensure safety in workplaces that handle lithium-ion batteries.", "community": 14, "sources": ["S1"]}, {"id": "universal waste regulations", "label": "universal waste regulations", "type": "REGULATION", "description": "Universal waste regulations provide a streamlined set of requirements for managing specific hazardous wastes, including lithium-ion batteries.", "community": 11, "sources": ["S1"]}, {"id": "very small quantity generator regulations", "label": "very small quantity generator regulations", "type": "REGULATION", "description": "These regulations apply to businesses generating small amounts of hazardous waste, including lithium-ion batteries, and may have reduced requirements.", "community": 10, "sources": ["S1"]}, {"id": "hazardous waste", "label": "hazardous waste", "type": "CONCEPT", "description": "Hazardous waste refers to waste that poses substantial or potential threats to public health or the environment, including discarded lithium-ion batteries.", "community": 11, "sources": ["S1"]}, {"id": "universal waste", "label": "universal waste", "type": "CONCEPT", "description": "Universal waste is a category of hazardous waste that is subject to less stringent regulations to facilitate recycling and proper disposal.", "community": -1, "sources": ["S1"]}, {"id": "department of labor", "label": "Department of Labor", "type": "GOVERNMENT", "description": "The Department of Labor oversees workplace safety regulations, including those related to lithium-ion batteries.", "community": 14, "sources": ["S1"]}, {"id": "dot", "label": "DOT", "type": "GOVERNMENT", "description": "The Department of Transportation regulates the transportation of hazardous materials, including lithium batteries.", "community": 12, "sources": ["S1"]}, {"id": "consumer product safety commission", "label": "Consumer Product Safety Commission", "type": "GOVERNMENT", "description": "The Commission provides safety information regarding consumer products, including those powered by lithium-ion batteries.", "community": 10, "sources": ["S1"]}, {"id": "hazardous materials regulations", "label": "Hazardous Materials Regulations", "type": "REGULATION", "description": "Regulations set by the DOT that govern the safe transportation of hazardous materials, including lithium batteries.", "community": 12, "sources": ["S1"]}, {"id": "safety advisory notice", "label": "Safety Advisory Notice", "type": "REGULATION", "description": "A notice issued by DOT to inform about the safe disposal and recycling of lithium batteries.", "community": 12, "sources": ["S1"]}, {"id": "summary report for the lithium-ion batteries in the waste stream workshops", "label": "Summary Report for the Lithium-Ion Batteries in the Waste Stream Workshops", "type": "REGULATION", "description": "A report released by the EPA summarizing findings from workshops on lithium-ion battery waste management.", "community": 11, "sources": ["S1"]}, {"id": "hazmat regulatory information", "label": "Hazmat regulatory information", "type": "CONCEPT", "description": "Guidelines and requirements for the safe handling and transportation of hazardous materials, including lithium batteries.", "community": 11, "sources": ["S1"]}, {"id": "environmental protection agency", "label": "Environmental Protection Agency", "type": "GOVERNMENT", "description": "The Environmental Protection Agency (EPA) is a U.S. government agency responsible for regulating and overseeing environmental protection, including battery recycling initiatives.", "community": 2, "sources": ["S2"]}, {"id": "bipartisan infrastructure law", "label": "Bipartisan Infrastructure Law", "type": "REGULATION", "description": "The Bipartisan Infrastructure Law allocates funding for developing battery collection best practices and guidelines to enhance battery recycling efforts.", "community": 2, "sources": ["S2"]}, {"id": "new jersey", "label": "New Jersey", "type": "GOVERNMENT", "description": "New Jersey is a U.S. state that has implemented comprehensive electric vehicle battery management requirements through its Electric and Hybrid Vehicle Battery Management Act.", "community": -1, "sources": ["S2"]}, {"id": "eu battery regulation 2023/1542", "label": "EU Battery Regulation 2023/1542", "type": "REGULATION", "description": "The EU Battery Regulation 2023/1542 establishes a comprehensive framework for battery sustainability and recycling compliance within the European Union.", "community": 3, "sources": ["S2"]}, {"id": "california", "label": "California", "type": "GOVERNMENT", "description": "California is a U.S. state known for its stringent battery recycling regulations, including stewardship programs for covered batteries. California established a Lithium-Ion Car Battery Recycling Advisory Group aimed at ensuring close to 100% of lithium-ion batteries are reused or recycled at end-of-life. California is the state where the Responsible Battery Recycling Act is implemented, aiming to improve battery recycling and reduce environmental harm.", "community": 3, "sources": ["S2", "S3", "S5"]}, {"id": "washington state", "label": "Washington State", "type": "GOVERNMENT", "description": "Washington State has enacted SB 5144, requiring battery producers to join Battery Stewardship Organizations and implement disposal bans.", "community": 3, "sources": ["S2"]}, {"id": "connecticut", "label": "Connecticut", "type": "GOVERNMENT", "description": "Connecticut is a U.S. state that has implemented producer responsibility frameworks for battery recycling. Connecticut has regulations requiring retailers to take back batteries one-for-one at the point of sale.", "community": 15, "sources": ["S2", "S4"]}, {"id": "colorado", "label": "Colorado", "type": "GOVERNMENT", "description": "Colorado is a U.S. state that has adopted similar producer responsibility laws for battery recycling.", "community": 15, "sources": ["S2"]}, {"id": "nebraska", "label": "Nebraska", "type": "GOVERNMENT", "description": "Nebraska is a U.S. state that has implemented battery recycling regulations aligned with producer responsibility models.", "community": 15, "sources": ["S2"]}, {"id": "illinois", "label": "Illinois", "type": "GOVERNMENT", "description": "Illinois is a U.S. state that has enacted battery recycling regulations similar to those in other states with producer responsibility frameworks.", "community": 15, "sources": ["S2"]}, {"id": "texas", "label": "Texas", "type": "GOVERNMENT", "description": "Texas is a U.S. state that maintains less restrictive approaches to battery recycling regulations. Texas requires fees for the collection of lead batteries and has specific exemptions for certain types of batteries.", "community": 16, "sources": ["S2", "S4"]}, {"id": "florida", "label": "Florida", "type": "GOVERNMENT", "description": "Florida is a U.S. state with less stringent battery recycling regulations compared to other states. Florida mandates a fee per battery at the retail level to encourage recycling.", "community": 16, "sources": ["S2", "S4"]}, {"id": "lithium", "label": "lithium", "type": "MATERIAL", "description": "Lithium is a critical material used in electric vehicle batteries, which is subject to specific recycling regulations. Lithium is a critical mineral used in batteries that is essential for national security. Lithium is a critical metal in batteries that can be recovered and reused, contributing to sustainable battery management.", "community": 17, "sources": ["S2", "S3"]}, {"id": "cobalt", "label": "cobalt", "type": "MATERIAL", "description": "Cobalt is a valuable material in battery production, with recycling targets established under EU regulations. Cobalt is a critical mineral contained in batteries that is essential for national security. Cobalt is a material that is subject to recycled content mandates under EU regulations to ensure material circularity.", "community": 18, "sources": ["S2"]}, {"id": "nickel", "label": "nickel", "type": "MATERIAL", "description": "Nickel is a key material in battery manufacturing, with recycling requirements set by regulations. Nickel is one of the metals that pose threats to human health and the environment when improperly managed. Nickel is included in the EU's recycled content requirements to promote advanced recycling technologies.", "community": 17, "sources": ["S2", "S3"]}, {"id": "lead", "label": "lead", "type": "MATERIAL", "description": "Lead is a hazardous material found in some batteries, with specific recycling targets mandated by regulations. Lead is one of the materials regulated under the EU's recycled content mandates to ensure sustainability.", "community": 18, "sources": ["S2"]}, {"id": "battery stewardship", "label": "battery stewardship", "type": "CONCEPT", "description": "Battery stewardship refers to the responsibility of producers to manage the lifecycle of batteries, including recycling and disposal.", "community": 3, "sources": ["S2"]}, {"id": "producer responsibility", "label": "producer responsibility", "type": "CONCEPT", "description": "Producer responsibility is a regulatory approach that holds manufacturers accountable for the entire lifecycle of their products, including recycling.", "community": 15, "sources": ["S2"]}, {"id": "recycling technologies", "label": "recycling technologies", "type": "TECHNOLOGY", "description": "Recycling technologies are methods developed to recover valuable materials from used batteries, ensuring sustainable practices. Advanced recycling technologies are being developed to meet stringent regulatory requirements and promote material circularity.", "community": 18, "sources": ["S2"]}, {"id": "battery collection best practices", "label": "battery collection best practices", "type": "CONCEPT", "description": "Battery collection best practices are guidelines aimed at improving the efficiency and safety of battery recycling processes.", "community": 2, "sources": ["S2"]}, {"id": "washington dc", "label": "Washington DC", "type": "GOVERNMENT", "description": "Washington DC exemplifies stewardship requirements where producers of covered batteries must join approved Battery Stewardship Organizations.", "community": 13, "sources": ["S2"]}, {"id": "european union", "label": "European Union", "type": "GOVERNMENT", "description": "The European Union's comprehensive approach to battery recycling regulations is becoming a template for regulatory development worldwide.", "community": 0, "sources": ["S2"]}, {"id": "battery passport", "label": "Battery Passport", "type": "CONCEPT", "description": "The Battery Passport concept represents growing international coordination on traceability requirements for battery information throughout supply chains.", "community": 7, "sources": ["S2"]}, {"id": "new york", "label": "New York", "type": "GOVERNMENT", "description": "New York requires retailers selling rechargeable batteries to collect used batteries of the same type from customers.", "community": 0, "sources": ["S2"]}, {"id": "maryland", "label": "Maryland", "type": "GOVERNMENT", "description": "Maryland's Rechargeable Battery Management Law requires management programs for products containing non-removable batteries.", "community": 8, "sources": ["S2"]}, {"id": "natural graphite", "label": "natural graphite", "type": "MATERIAL", "description": "Natural graphite is one of the materials sourced for battery production and is covered under supply chain due diligence regulations.", "community": 10, "sources": ["S2"]}, {"id": "ni-cd batteries", "label": "Ni-Cd batteries", "type": "MATERIAL", "description": "Ni-Cd batteries are non-removable batteries that require management programs under Maryland's Rechargeable Battery Management Law.", "community": 8, "sources": ["S2"]}, {"id": "small sealed lead batteries", "label": "small sealed lead batteries", "type": "MATERIAL", "description": "Small sealed lead batteries are also covered under Maryland's Rechargeable Battery Management Law and require specific management programs.", "community": 8, "sources": ["S2"]}, {"id": "automotive sector", "label": "automotive sector", "type": "CONCEPT", "description": "The automotive sector faces stringent emerging requirements for electric vehicle batteries, particularly regarding recycling.", "community": 10, "sources": ["S2"]}, {"id": "consumer goods sector", "label": "consumer goods sector", "type": "CONCEPT", "description": "The consumer goods sector must navigate distinct regulatory requirements for battery recycling.", "community": 0, "sources": ["S2"]}, {"id": "industrial applications", "label": "industrial applications", "type": "CONCEPT", "description": "Industrial applications face specific Universal Waste requirements for battery management.", "community": 8, "sources": ["S2"]}, {"id": "battery stewardship programs", "label": "battery stewardship programs", "type": "CONCEPT", "description": "Battery stewardship programs create producer responsibility frameworks for manufacturers to finance and operate collection and recycling systems.", "community": 0, "sources": ["S2"]}, {"id": "recycling compliance", "label": "recycling compliance", "type": "CONCEPT", "description": "Recycling compliance is supported by the Battery Passport concept, which tracks battery information throughout supply chains.", "community": 7, "sources": ["S2"]}, {"id": "eu regulation", "label": "EU Regulation", "type": "REGULATION", "description": "The EU Regulation sets comprehensive compliance monitoring and recycling targets for battery recycling, including penalties for violations.", "community": 21, "sources": ["S2"]}, {"id": "battery stewardship organizations", "label": "Battery Stewardship Organizations", "type": "ORGANIZATION", "description": "These organizations help companies comply with battery recycling regulations and develop collection and recycling systems.", "community": 21, "sources": ["S2"]}, {"id": "blockchain", "label": "Blockchain", "type": "TECHNOLOGY", "description": "Blockchain technology enables tamper-proof compliance documentation and material traceability in battery recycling.", "community": 20, "sources": ["S2"]}, {"id": "digital solutions", "label": "Digital Solutions", "type": "TECHNOLOGY", "description": "Digital solutions improve tracking, verification, and compliance monitoring systems for battery recycling regulations.", "community": 20, "sources": ["S2"]}, {"id": "lithium batteries", "label": "Lithium Batteries", "type": "MATERIAL", "description": "Lithium batteries are subject to specific regulations due to their unique characteristics and environmental impact.", "community": 18, "sources": ["S2"]}, {"id": "circular economy policies", "label": "Circular Economy Policies", "type": "CONCEPT", "description": "Circular economy policies aim to enhance material recovery and recycling in the battery industry.", "community": 18, "sources": ["S2"]}, {"id": "compliance monitoring systems", "label": "Compliance Monitoring Systems", "type": "TECHNOLOGY", "description": "These systems are designed to ensure adherence to battery recycling regulations and improve oversight.", "community": 20, "sources": ["S2"]}, {"id": "compliance strategies", "label": "Compliance Strategies", "type": "CONCEPT", "description": "Effective compliance strategies are essential for companies to navigate evolving battery recycling regulations.", "community": 21, "sources": ["S2"]}, {"id": "producer responsibility programs", "label": "Producer Responsibility Programs", "type": "CONCEPT", "description": "These programs expand obligations for producers regarding battery collection and recycling.", "community": 21, "sources": ["S2"]}, {"id": "material recovery systems", "label": "Material Recovery Systems", "type": "TECHNOLOGY", "description": "Material recovery systems are developed to enhance the efficiency of recycling processes in the battery industry.", "community": 18, "sources": ["S2"]}, {"id": "collection networks", "label": "Collection Networks", "type": "CONCEPT", "description": "Comprehensive collection networks are being established to facilitate battery recycling and compliance.", "community": 21, "sources": ["S2"]}, {"id": "supply chain due diligence programs", "label": "Supply Chain Due Diligence Programs", "type": "CONCEPT", "description": "These programs are essential for managing risks and ensuring compliance in battery supply chains.", "community": 19, "sources": ["S2"]}, {"id": "regulatory compliance", "label": "Regulatory Compliance", "type": "CONCEPT", "description": "Regulatory compliance is critical for companies operating in the battery recycling sector to avoid penalties.", "community": 19, "sources": ["S2"]}, {"id": "environmental sustainability", "label": "Environmental Sustainability", "type": "CONCEPT", "description": "Environmental sustainability is a key objective driving the development of battery recycling regulations.", "community": 19, "sources": ["S2"]}, {"id": "resource security", "label": "Resource Security", "type": "CONCEPT", "description": "Resource security is a concern addressed by comprehensive battery recycling frameworks.", "community": 19, "sources": ["S2"]}, {"id": "calrecycle", "label": "CalRecycle", "type": "ORGANIZATION", "description": "CalRecycle is the California state agency responsible for overseeing battery recycling and the implementation of the Responsible Battery Recycling Act.", "community": 17, "sources": ["S3"]}, {"id": "responsible battery recycling act", "label": "Responsible Battery Recycling Act", "type": "REGULATION", "description": "The Responsible Battery Recycling Act mandates the battery industry to manage the collection, recycling, and end-of-life processes for covered batteries.", "community": 17, "sources": ["S3"]}, {"id": "copper", "label": "copper", "type": "MATERIAL", "description": "Copper is one of the valuable metals contained in batteries that can be recovered through proper recycling processes.", "community": 17, "sources": ["S3"]}, {"id": "bci", "label": "BCI", "type": "ORGANIZATION", "description": "The Battery Council International (BCI) is an organization that provides a state-by-state summary of battery recycling laws in the United States. The Battery Council International (BCI) is an organization that provides guidance on state recycling laws and promotes battery recycling practices.", "community": 16, "sources": ["S4"]}, {"id": "lead-acid battery", "label": "lead-acid battery", "type": "MATERIAL", "description": "Lead-acid batteries are rechargeable batteries that consist of lead and sulfuric acid, commonly used in vehicles and other applications. Lead-acid batteries are devices designed to store electrical energy through chemical reactions involving lead and sulfuric acid, commonly used in vehicles. A specific type of lead battery designed for use in motor vehicles, aviation equipment, or marine vessels.", "community": 5, "sources": ["S4"]}, {"id": "united states", "label": "United States", "type": "GOVERNMENT", "description": "The United States has federal and state authorities that regulate battery recycling, including lead-acid batteries.", "community": 5, "sources": ["S4"]}, {"id": "state recycling laws", "label": "State Recycling Laws", "type": "REGULATION", "description": "State Recycling Laws govern the recycling and deposit requirements for lead-acid batteries, including refundable deposits and definitions of battery types. Laws that govern the recycling and management of lead and lead-acid batteries. State Recycling Laws govern the recycling and disposal of lead and lead-acid batteries, including deposit and refund policies.", "community": 5, "sources": ["S4"]}, {"id": "lead battery", "label": "lead battery", "type": "MATERIAL", "description": "A type of battery that consists of lead and sulfuric acid, used as a power source in various applications. A lead battery is a type of rechargeable battery that contains lead and sulfuric acid, commonly used as a power source in vehicles. Lead battery refers to a type of battery that consists of lead and sulfuric acid, commonly used as a power source in vehicles.", "community": 5, "sources": ["S4"]}, {"id": "kansas city, mo", "label": "Kansas City, MO", "type": "FACILITY", "description": "A location where regulations regarding lead and lead-acid batteries are enforced.", "community": 5, "sources": ["S4"]}, {"id": "new york department of environmental conservation", "label": "New York Department of Environmental Conservation", "type": "GOVERNMENT", "description": "The New York Department of Environmental Conservation regulates the handling and recycling of lead-acid batteries in New York State.", "community": 5, "sources": ["S4"]}, {"id": "bci model", "label": "BCI Model", "type": "REGULATION", "description": "The BCI Model refers to a set of guidelines for the management and recycling of lead-acid batteries.", "community": 5, "sources": ["S4"]}, {"id": "kansas city", "label": "Kansas City", "type": "GOVERNMENT", "description": "Kansas City has specific ordinances that regulate the return and storage of used batteries to ensure safe recycling.", "community": 16, "sources": ["S4"]}, {"id": "minnesota", "label": "Minnesota", "type": "GOVERNMENT", "description": "Minnesota has regulations that limit the number of batteries a consumer can return to retailers, promoting responsible recycling.", "community": 16, "sources": ["S4"]}, {"id": "nevada", "label": "Nevada", "type": "GOVERNMENT", "description": "Nevada has regulations regarding the disposal of lead batteries, allowing disposal at permitted facilities.", "community": 16, "sources": ["S4"]}, {"id": "maine", "label": "Maine", "type": "GOVERNMENT", "description": "Maine requires a fee per battery at the retail level to promote battery recycling.", "community": 16, "sources": ["S4"]}, {"id": "tennessee", "label": "Tennessee", "type": "GOVERNMENT", "description": "Tennessee prohibits landfills from accepting lead-acid batteries, ensuring they are returned for recycling.", "community": 16, "sources": ["S4"]}, {"id": "south carolina", "label": "South Carolina", "type": "GOVERNMENT", "description": "South Carolina requires retailers to collect fees for lead batteries sold, with funds directed to a Solid Waste Management Trust Fund.", "community": 16, "sources": ["S4"]}, {"id": "responsible battery recycling act of 2022", "label": "Responsible Battery Recycling Act of 2022", "type": "REGULATION", "description": "A California legislation that mandates manufacturers to establish a battery recycling program and stewardship plan for the collection and recycling of batteries.", "community": 3, "sources": ["S5"]}, {"id": "cirba solutions", "label": "Cirba Solutions", "type": "ORGANIZATION", "description": "A company involved in supporting California's battery recycling efforts and expanding lithium-ion battery recycling operations.", "community": 3, "sources": ["S5"]}, {"id": "u.s. department of energy", "label": "U.S. Department of Energy", "type": "GOVERNMENT", "description": "A government agency that collaborates with Cirba Solutions to promote battery recycling and critical materials infrastructure.", "community": 3, "sources": ["S5"]}, {"id": "department of toxic substances control", "label": "Department of Toxic Substances Control", "type": "GOVERNMENT", "description": "The department that oversees the submission of stewardship plans under the Responsible Battery Recycling Act.", "community": 3, "sources": ["S5"]}, {"id": "recycling facilities", "label": "recycling facilities", "type": "FACILITY", "description": "Facilities that will be prioritized for battery recycling closer to the point of generation to reduce transportation emissions.", "community": 3, "sources": ["S5"]}], "links": [{"source": "lithium-ion batteries", "target": "u.s. geological survey", "label": "SUPPLIES", "description": "Lithium-ion batteries are made from critical minerals that the U.S. Geological Survey monitors.", "sources": ["S1"]}, {"source": "lithium-ion batteries", "target": "epa", "label": "REGULATES", "description": "The EPA sets guidelines for the proper recycling of lithium-ion batteries to protect human health and the environment.", "sources": ["S1"]}, {"source": "lithium-ion batteries", "target": "call2recycle", "label": "PARTNERS_WITH", "description": "Lithium-ion batteries are promoted for recycling through the initiatives of Call2Recycle.", "sources": ["S1"]}, {"source": "lithium-ion batteries", "target": "avoid the spark. be battery safety smart. campaign", "label": "PART_OF", "description": "The campaign includes lithium-ion batteries in its educational efforts about battery safety and recycling.", "sources": ["S1"]}, {"source": "lithium-ion batteries", "target": "earth 911", "label": "SUPPLIES", "description": "Earth 911 provides resources for recycling lithium-ion batteries.", "sources": ["S1"]}, {"source": "lithium-ion batteries", "target": "earth 911", "label": "LOCATED_IN", "description": "Earth 911 operates within the U.S. to provide recycling information for lithium-ion batteries.", "sources": ["S1"]}, {"source": "epa", "target": "call2recycle", "label": "FUNDS", "description": "The EPA may support initiatives like Call2Recycle to promote battery recycling.", "sources": ["S1"]}, {"source": "epa", "target": "lithium-ion batteries", "label": "REGULATES", "description": "The EPA regulates the disposal and recycling of lithium-ion batteries to ensure environmental safety. The EPA regulates the recycling and management of lithium-ion batteries under federal hazardous waste laws.", "sources": ["S1"]}, {"source": "epa", "target": "lithium-ion batteries", "label": "RECOVERS", "description": "EPA conducts workshops and studies aimed at improving the recovery and recycling of lithium-ion batteries.", "sources": ["S1"]}, {"source": "epa", "target": "universal waste regulations", "label": "DEVELOPS", "description": "The EPA develops universal waste regulations to streamline the management of hazardous wastes, including lithium-ion batteries. The EPA is developing tailored universal waste standards for lithium batteries to improve recycling practices.", "sources": ["S1"]}, {"source": "epa", "target": "hazardous waste", "label": "REGULATES", "description": "The EPA regulates hazardous waste, which includes discarded lithium-ion batteries.", "sources": ["S1"]}, {"source": "epa", "target": "summary report for the lithium-ion batteries in the waste stream workshops", "label": "FUNDS", "description": "EPA funded workshops that resulted in a summary report on lithium-ion battery waste management.", "sources": ["S1"]}, {"source": "epa", "target": "hazmat regulatory information", "label": "SUPPLIES", "description": "EPA provides hazmat regulatory information relevant to the recycling and disposal of lithium-ion batteries.", "sources": ["S1"]}, {"source": "epa", "target": "hazardous materials regulations", "label": "REGULATES", "description": "EPA collaborates with DOT to ensure compliance with hazardous materials regulations concerning lithium batteries.", "sources": ["S1"]}, {"source": "epa", "target": "battery stewardship programs", "label": "REGULATES", "description": "The EPA regulates battery stewardship programs to ensure they are technically and economically feasible.", "sources": ["S2"]}, {"source": "epa", "target": "lithium batteries", "label": "REGULATES", "description": "The EPA regulates the handling and recycling of lithium batteries under specific guidelines.", "sources": ["S2"]}, {"source": "call2recycle", "target": "avoid the spark. be battery safety smart. campaign", "label": "PARTNERS_WITH", "description": "Call2Recycle collaborates with various industry groups in the campaign to promote battery safety.", "sources": ["S1"]}, {"source": "call2recycle", "target": "lithium-ion batteries", "label": "SUPPLIES", "description": "Call2Recycle supplies information and resources for the recycling of lithium-ion batteries.", "sources": ["S1"]}, {"source": "call2recycle", "target": "washington dc", "label": "PARTNERS_WITH", "description": "Call2Recycle collaborates with Washington DC to help producers fulfill recycling requirements.", "sources": ["S2"]}, {"source": "critical minerals", "target": "lithium-ion batteries", "label": "RECOVERS", "description": "Lithium-ion batteries contain critical minerals that can be recovered through recycling.", "sources": ["S1"]}, {"source": "u.s. department of transportation", "target": "lithium-ion batteries", "label": "REGULATES", "description": "The U.S. Department of Transportation regulates the transportation of lithium-ion batteries as hazardous materials.", "sources": ["S1"]}, {"source": "resource conservation and recovery act", "target": "lithium-ion batteries", "label": "REGULATES", "description": "The Resource Conservation and Recovery Act regulates the management of lithium-ion batteries as hazardous waste.", "sources": ["S1"]}, {"source": "osha", "target": "lithium-ion batteries", "label": "REGULATES", "description": "OSHA regulates workplace safety standards related to the handling of lithium-ion batteries. OSHA provides safety guidelines for workplaces that handle lithium-ion batteries.", "sources": ["S1"]}, {"source": "universal waste regulations", "target": "lithium-ion batteries", "label": "REGULATES", "description": "Universal waste regulations apply to the management of lithium-ion batteries to facilitate their recycling.", "sources": ["S1"]}, {"source": "very small quantity generator regulations", "target": "lithium-ion batteries", "label": "REGULATES", "description": "Very small quantity generator regulations provide specific guidelines for businesses generating small amounts of lithium-ion batteries.", "sources": ["S1"]}, {"source": "department of labor", "target": "osha", "label": "REGULATES", "description": "The Department of Labor regulates OSHA, which issues safety guidelines for handling lithium-ion batteries.", "sources": ["S1"]}, {"source": "dot", "target": "hazardous materials regulations", "label": "REGULATES", "description": "DOT establishes the Hazardous Materials Regulations that govern the transportation of lithium batteries.", "sources": ["S1"]}, {"source": "dot", "target": "safety advisory notice", "label": "REGULATES", "description": "DOT issued a Safety Advisory Notice to inform about the safe disposal and recycling of lithium batteries.", "sources": ["S1"]}, {"source": "dot", "target": "lithium-ion batteries", "label": "REGULATES", "description": "DOT regulates the transportation of lithium-ion batteries under hazardous materials regulations.", "sources": ["S1"]}, {"source": "consumer product safety commission", "target": "lithium-ion batteries", "label": "REGULATES", "description": "The Commission regulates safety standards for consumer products that use lithium-ion batteries.", "sources": ["S1"]}, {"source": "environmental protection agency", "target": "bipartisan infrastructure law", "label": "FUNDS", "description": "The Environmental Protection Agency is funded by the Bipartisan Infrastructure Law to develop battery collection best practices.", "sources": ["S2"]}, {"source": "eu battery regulation 2023/1542", "target": "lithium", "label": "REGULATES", "description": "The EU Battery Regulation 2023/1542 sets recycling targets for lithium as part of its comprehensive battery management framework.", "sources": ["S2"]}, {"source": "eu battery regulation 2023/1542", "target": "battery stewardship", "label": "REGULATES", "description": "The EU Battery Regulation 2023/1542 incorporates battery stewardship principles into its regulatory framework.", "sources": ["S2"]}, {"source": "california", "target": "battery stewardship", "label": "REGULATES", "description": "California implements battery stewardship regulations to ensure responsible recycling and disposal of batteries.", "sources": ["S2"]}, {"source": "california", "target": "lithium-ion batteries", "label": "REGULATES", "description": "California regulates the recycling of lithium-ion batteries through its advisory group.", "sources": ["S2"]}, {"source": "california", "target": "calrecycle", "label": "FUNDS", "description": "California provides funding to CalRecycle to support its battery recycling initiatives.", "sources": ["S3"]}, {"source": "california", "target": "recycling facilities", "label": "REGULATES", "description": "California regulates the establishment of recycling facilities as part of the Responsible Battery Recycling Act.", "sources": ["S5"]}, {"source": "california", "target": "cirba solutions", "label": "FUNDS", "description": "California's initiatives may provide funding opportunities for organizations like Cirba Solutions involved in battery recycling.", "sources": ["S5"]}, {"source": "washington state", "target": "battery stewardship", "label": "REGULATES", "description": "Washington State's SB 5144 mandates battery producers to participate in battery stewardship organizations.", "sources": ["S2"]}, {"source": "connecticut", "target": "producer responsibility", "label": "REGULATES", "description": "Connecticut has established producer responsibility laws for battery recycling.", "sources": ["S2"]}, {"source": "connecticut", "target": "bci", "label": "REGULATES", "description": "Connecticut's one-for-one battery return requirement is based on BCI's model legislation.", "sources": ["S4"]}, {"source": "colorado", "target": "producer responsibility", "label": "REGULATES", "description": "Colorado has implemented producer responsibility frameworks for battery recycling.", "sources": ["S2"]}, {"source": "nebraska", "target": "producer responsibility", "label": "REGULATES", "description": "Nebraska has adopted producer responsibility regulations for battery recycling.", "sources": ["S2"]}, {"source": "illinois", "target": "producer responsibility", "label": "REGULATES", "description": "Illinois has enacted producer responsibility laws similar to those in other states.", "sources": ["S2"]}, {"source": "texas", "target": "bci", "label": "REGULATES", "description": "Texas's fee requirements for battery collection are based on BCI's recommendations.", "sources": ["S4"]}, {"source": "florida", "target": "bci", "label": "REGULATES", "description": "Florida's retail battery fee regulations are influenced by BCI's recycling initiatives.", "sources": ["S4"]}, {"source": "lithium", "target": "recycling technologies", "label": "DEVELOPS", "description": "Recycling technologies are developed to recover lithium from used batteries.", "sources": ["S2"]}, {"source": "lithium", "target": "lithium-ion batteries", "label": "RECOVERS", "description": "Lithium is recovered from lithium-ion batteries during the recycling process.", "sources": ["S2"]}, {"source": "lithium", "target": "responsible battery recycling act", "label": "SUPPLIES", "description": "Lithium recovered from batteries can be supplied to manufacturers, supporting the goals of the Responsible Battery Recycling Act.", "sources": ["S3"]}, {"source": "cobalt", "target": "recycling technologies", "label": "DEVELOPS", "description": "Recycling technologies are developed to recover cobalt from used batteries.", "sources": ["S2"]}, {"source": "cobalt", "target": "lithium-ion batteries", "label": "RECOVERS", "description": "Cobalt is recovered from lithium-ion batteries during the recycling process.", "sources": ["S2"]}, {"source": "cobalt", "target": "circular economy policies", "label": "SUPPLIES", "description": "Cobalt is supplied under circular economy policies that mandate recycled content in battery production.", "sources": ["S2"]}, {"source": "nickel", "target": "recycling technologies", "label": "DEVELOPS", "description": "Recycling technologies are developed to recover nickel from used batteries.", "sources": ["S2"]}, {"source": "nickel", "target": "lithium-ion batteries", "label": "RECOVERS", "description": "Nickel is recovered from lithium-ion batteries during the recycling process.", "sources": ["S2"]}, {"source": "nickel", "target": "circular economy policies", "label": "SUPPLIES", "description": "Nickel is supplied in accordance with circular economy policies that promote recycling and sustainability.", "sources": ["S2"]}, {"source": "nickel", "target": "responsible battery recycling act", "label": "SUPPLIES", "description": "Nickel recovered through recycling efforts can be supplied to industries as part of the Responsible Battery Recycling Act's objectives.", "sources": ["S3"]}, {"source": "lead", "target": "recycling technologies", "label": "DEVELOPS", "description": "Recycling technologies are developed to recover lead from used batteries.", "sources": ["S2"]}, {"source": "lead", "target": "circular economy policies", "label": "SUPPLIES", "description": "Lead is supplied under circular economy policies that require its recycling in battery production.", "sources": ["S2"]}, {"source": "battery stewardship", "target": "producer responsibility", "label": "PART_OF", "description": "Battery stewardship is a concept that is part of the broader producer responsibility framework.", "sources": ["S2"]}, {"source": "battery stewardship", "target": "california", "label": "REGULATES", "description": "California's regulations include battery stewardship as a key component of battery recycling compliance.", "sources": ["S2"]}, {"source": "recycling technologies", "target": "material recovery systems", "label": "DEVELOPS", "description": "Recycling technologies develop material recovery systems to enhance recycling efficiency.", "sources": ["S2"]}, {"source": "recycling technologies", "target": "environmental sustainability", "label": "SUPPLIES", "description": "Recycling technologies supply solutions that contribute to environmental sustainability in battery recycling.", "sources": ["S2"]}, {"source": "battery collection best practices", "target": "environmental protection agency", "label": "DEVELOPS", "description": "The Environmental Protection Agency develops battery collection best practices to enhance recycling efforts.", "sources": ["S2"]}, {"source": "european union", "target": "battery stewardship programs", "label": "REGULATES", "description": "The European Union sets regulations that govern battery stewardship programs across its member states.", "sources": ["S2"]}, {"source": "battery passport", "target": "recycling compliance", "label": "SUPPLIES", "description": "The Battery Passport concept supplies a framework for tracking battery information to ensure recycling compliance.", "sources": ["S2"]}, {"source": "new york", "target": "battery stewardship programs", "label": "REGULATES", "description": "New York regulates battery stewardship programs requiring retailers to collect used batteries.", "sources": ["S2"]}, {"source": "maryland", "target": "ni-cd batteries", "label": "REGULATES", "description": "Maryland regulates the management of Ni-Cd batteries through its Rechargeable Battery Management Law.", "sources": ["S2"]}, {"source": "maryland", "target": "small sealed lead batteries", "label": "REGULATES", "description": "Maryland's Rechargeable Battery Management Law also regulates small sealed lead batteries.", "sources": ["S2"]}, {"source": "natural graphite", "target": "lithium-ion batteries", "label": "RECOVERS", "description": "Natural graphite is recovered from lithium-ion batteries during the recycling process.", "sources": ["S2"]}, {"source": "automotive sector", "target": "lithium-ion batteries", "label": "REGULATES", "description": "The automotive sector is subject to stringent regulations regarding the recycling of lithium-ion batteries.", "sources": ["S2"]}, {"source": "consumer goods sector", "target": "battery stewardship programs", "label": "REGULATES", "description": "The consumer goods sector must comply with battery stewardship programs as part of recycling regulations.", "sources": ["S2"]}, {"source": "industrial applications", "target": "small sealed lead batteries", "label": "REGULATES", "description": "Industrial applications are required to manage small sealed lead batteries under Universal Waste requirements.", "sources": ["S2"]}, {"source": "battery stewardship programs", "target": "call2recycle", "label": "PART_OF", "description": "Call2Recycle is part of the battery stewardship programs that help manage recycling efforts.", "sources": ["S2"]}, {"source": "eu regulation", "target": "battery stewardship organizations", "label": "REGULATES", "description": "The EU Regulation sets rules that Battery Stewardship Organizations must follow to ensure compliance with recycling targets.", "sources": ["S2"]}, {"source": "battery stewardship organizations", "target": "compliance strategies", "label": "DEVELOPS", "description": "Battery Stewardship Organizations develop compliance strategies for companies to meet regulatory requirements.", "sources": ["S2"]}, {"source": "blockchain", "target": "compliance monitoring systems", "label": "SUPPLIES", "description": "Blockchain technology supplies tamper-proof documentation for compliance monitoring systems in battery recycling.", "sources": ["S2"]}, {"source": "digital solutions", "target": "compliance monitoring systems", "label": "DEVELOPS", "description": "Digital solutions develop compliance monitoring systems that enhance regulatory oversight in battery recycling.", "sources": ["S2"]}, {"source": "lithium batteries", "target": "recycling technologies", "label": "SUPPLIES", "description": "Lithium batteries supply the need for advanced recycling technologies due to their unique regulatory requirements.", "sources": ["S2"]}, {"source": "compliance monitoring systems", "target": "regulatory compliance", "label": "SUPPLIES", "description": "Compliance monitoring systems supply the necessary oversight to ensure regulatory compliance in battery recycling.", "sources": ["S2"]}, {"source": "compliance monitoring systems", "target": "digital solutions", "label": "PART_OF", "description": "Compliance monitoring systems are part of the digital solutions that enhance regulatory oversight.", "sources": ["S2"]}, {"source": "compliance strategies", "target": "regulatory compliance", "label": "DEVELOPS", "description": "Compliance strategies are developed to ensure adherence to evolving regulatory compliance in battery recycling.", "sources": ["S2"]}, {"source": "producer responsibility programs", "target": "collection networks", "label": "DEVELOPS", "description": "Producer responsibility programs develop collection networks to facilitate battery recycling.", "sources": ["S2"]}, {"source": "material recovery systems", "target": "recycling technologies", "label": "PART_OF", "description": "Material recovery systems are part of the broader recycling technologies developed for battery recycling.", "sources": ["S2"]}, {"source": "collection networks", "target": "battery stewardship organizations", "label": "PART_OF", "description": "Collection networks are part of the initiatives led by Battery Stewardship Organizations to enhance recycling efforts.", "sources": ["S2"]}, {"source": "supply chain due diligence programs", "target": "regulatory compliance", "label": "SUPPLIES", "description": "Supply chain due diligence programs supply the framework for ensuring regulatory compliance in battery supply chains.", "sources": ["S2"]}, {"source": "environmental sustainability", "target": "regulatory compliance", "label": "REGULATES", "description": "Environmental sustainability regulations govern compliance requirements for battery recycling.", "sources": ["S2"]}, {"source": "resource security", "target": "regulatory compliance", "label": "REGULATES", "description": "Resource security regulations set compliance standards for battery recycling practices.", "sources": ["S2"]}, {"source": "calrecycle", "target": "responsible battery recycling act", "label": "REGULATES", "description": "CalRecycle regulates the implementation of the Responsible Battery Recycling Act in California.", "sources": ["S3"]}, {"source": "calrecycle", "target": "responsible battery recycling act", "label": "DEVELOPS", "description": "CalRecycle develops regulations and guidelines to enforce the Responsible Battery Recycling Act.", "sources": ["S3"]}, {"source": "calrecycle", "target": "copper", "label": "RECOVERS", "description": "CalRecycle oversees programs that aim to recover copper from batteries through recycling.", "sources": ["S3"]}, {"source": "calrecycle", "target": "nickel", "label": "RECOVERS", "description": "CalRecycle facilitates the recovery of nickel from batteries as part of its recycling initiatives.", "sources": ["S3"]}, {"source": "calrecycle", "target": "lithium", "label": "RECOVERS", "description": "CalRecycle is involved in the recovery of lithium from batteries to promote sustainable practices.", "sources": ["S3"]}, {"source": "responsible battery recycling act", "target": "california", "label": "PART_OF", "description": "The Responsible Battery Recycling Act is a regulation that applies specifically within the jurisdiction of California.", "sources": ["S3"]}, {"source": "responsible battery recycling act", "target": "calrecycle", "label": "FUNDS", "description": "The Responsible Battery Recycling Act provides funding mechanisms for CalRecycle to implement battery recycling programs.", "sources": ["S3"]}, {"source": "copper", "target": "responsible battery recycling act", "label": "SUPPLIES", "description": "Copper recovered from batteries can be supplied back into the market as part of the goals of the Responsible Battery Recycling Act.", "sources": ["S3"]}, {"source": "bci", "target": "united states", "label": "REGULATES", "description": "BCI provides guidance on battery recycling laws regulated by federal and state authorities in the United States.", "sources": ["S4"]}, {"source": "bci", "target": "lead-acid battery", "label": "SUPPLIES", "description": "BCI supplies information on the recycling laws applicable to lead-acid batteries.", "sources": ["S4"]}, {"source": "bci", "target": "kansas city", "label": "REGULATES", "description": "BCI provides model legislation that influences Kansas City's ordinances on battery recycling.", "sources": ["S4"]}, {"source": "lead-acid battery", "target": "united states", "label": "REGULATES", "description": "Lead-acid battery recycling is regulated by both federal and state authorities in the United States.", "sources": ["S4"]}, {"source": "state recycling laws", "target": "lead-acid battery", "label": "REGULATES", "description": "State Recycling Laws set rules for the recycling and handling of lead-acid batteries. State Recycling Laws set rules for the management and recycling of lead-acid batteries.", "sources": ["S4"]}, {"source": "state recycling laws", "target": "lead battery", "label": "REGULATES", "description": "State Recycling Laws set rules for the management and recycling of lead batteries. State Recycling Laws set rules for the recycling and disposal of lead batteries.", "sources": ["S4"]}, {"source": "lead battery", "target": "lead-acid battery", "label": "PART_OF", "description": "Lead batteries are a category that includes lead-acid batteries as a specific type.", "sources": ["S4"]}, {"source": "kansas city, mo", "target": "state recycling laws", "label": "LOCATED_IN", "description": "Kansas City, MO is a location where State Recycling Laws are applicable.", "sources": ["S4"]}, {"source": "kansas city, mo", "target": "lead battery", "label": "REGULATES", "description": "Kansas City, MO enforces regulations regarding the recycling of lead batteries.", "sources": ["S4"]}, {"source": "kansas city, mo", "target": "lead-acid battery", "label": "REGULATES", "description": "Kansas City, MO enforces regulations regarding the recycling of lead-acid batteries.", "sources": ["S4"]}, {"source": "new york department of environmental conservation", "target": "lead battery", "label": "REGULATES", "description": "The New York Department of Environmental Conservation sets rules for the recycling and management of lead batteries.", "sources": ["S4"]}, {"source": "new york department of environmental conservation", "target": "lead-acid battery", "label": "REGULATES", "description": "The New York Department of Environmental Conservation regulates the use and recycling of lead-acid batteries.", "sources": ["S4"]}, {"source": "bci model", "target": "lead battery", "label": "REGULATES", "description": "The BCI Model provides regulations for the handling and recycling of lead batteries.", "sources": ["S4"]}, {"source": "bci model", "target": "lead-acid battery", "label": "REGULATES", "description": "The BCI Model includes guidelines for the management of lead-acid batteries.", "sources": ["S4"]}, {"source": "kansas city", "target": "bci", "label": "REGULATES", "description": "Kansas City's ordinances are influenced by guidelines set forth by BCI regarding battery recycling.", "sources": ["S4"]}, {"source": "minnesota", "target": "bci", "label": "REGULATES", "description": "Minnesota's regulations on battery returns are aligned with BCI's model legislation.", "sources": ["S4"]}, {"source": "nevada", "target": "bci", "label": "REGULATES", "description": "Nevada's disposal regulations for lead batteries are informed by BCI's guidelines.", "sources": ["S4"]}, {"source": "maine", "target": "bci", "label": "REGULATES", "description": "Maine's battery recycling fees are established in accordance with BCI's guidelines.", "sources": ["S4"]}, {"source": "tennessee", "target": "bci", "label": "REGULATES", "description": "Tennessee's prohibition on landfill disposal of lead-acid batteries is supported by BCI's recycling policies.", "sources": ["S4"]}, {"source": "south carolina", "target": "bci", "label": "REGULATES", "description": "South Carolina's fee collection for lead batteries is guided by BCI's recommendations.", "sources": ["S4"]}, {"source": "responsible battery recycling act of 2022", "target": "california", "label": "REGULATES", "description": "The Responsible Battery Recycling Act of 2022 is a regulation enacted by the state of California.", "sources": ["S5"]}, {"source": "responsible battery recycling act of 2022", "target": "department of toxic substances control", "label": "REGULATES", "description": "The Act requires plans to be submitted to the Department of Toxic Substances Control for oversight.", "sources": ["S5"]}, {"source": "cirba solutions", "target": "responsible battery recycling act of 2022", "label": "PARTNERS_WITH", "description": "Cirba Solutions is collaborating with California's Responsible Battery Recycling Act to support battery recycling initiatives.", "sources": ["S5"]}, {"source": "cirba solutions", "target": "u.s. department of energy", "label": "PARTNERS_WITH", "description": "Cirba Solutions partners with the U.S. Department of Energy to enhance battery recycling operations.", "sources": ["S5"]}, {"source": "cirba solutions", "target": "lithium-ion batteries", "label": "RECOVERS", "description": "Cirba Solutions focuses on recycling lithium-ion batteries as part of its operations.", "sources": ["S5"]}, {"source": "cirba solutions", "target": "recycling facilities", "label": "SUPPLIES", "description": "Cirba Solutions supplies materials recovered from recycling facilities as part of its operations.", "sources": ["S5"]}, {"source": "department of toxic substances control", "target": "responsible battery recycling act of 2022", "label": "REGULATES", "description": "The Department of Toxic Substances Control regulates the submission of stewardship plans required by the Responsible Battery Recycling Act.", "sources": ["S5"]}, {"source": "recycling facilities", "target": "lithium-ion batteries", "label": "RECOVERS", "description": "Recycling facilities are designed to recover materials from lithium-ion batteries.", "sources": ["S5"]}], "communities": 18, "type_colors": {"ORGANIZATION": "#4ECDC4", "PERSON": "#FF6B6B", "GOVERNMENT": "#60a5fa", "REGULATION": "#FBBF24", "TECHNOLOGY": "#86efac", "MATERIAL": "#c084fc", "FACILITY": "#fb923c", "CONCEPT": "#f472b6"}, "sources": {"S1": {"title": "Used Lithium-Ion Batteries", "url": "https://www.epa.gov/recycle/used-lithium-ion-batteries", "source": "U.S. Environmental Protection Agency (.gov)", "date": ""}, "S2": {"title": "Complete Guide to Battery Recycling Regulations & ...", "url": "https://www.greenli-ion.com/post/battery-recycling-regulations-compliance-guide-2caa3", "source": "Green Li-ion", "date": ""}, "S3": {"title": "Battery Stewardship - CalRecycle Home Page - CA.gov", "url": "https://calrecycle.ca.gov/epr/batteries/", "source": "CalRecycle Home Page (.gov)", "date": ""}, "S4": {"title": "State Recycling Laws", "url": "https://batterycouncil.org/policy-initiatives/state-recycling-laws/", "source": "Battery Council International", "date": ""}, "S5": {"title": "Responsible Battery Recycling Act of 2022", "url": "https://www.cirbasolutions.com/responsible-battery-recycling-act-of-2022/?srsltid=AYCX9vIupWP-xWJNr8Qv4XtrFac5e8rTqjjndF0nOLOtJPTtjbN1y_Y7", "source": "Cirba Solutions", "date": ""}}} with real data)
+// ═══════════════════════════════════════════════════════════════════════════
+const GRAPH_DATA = {"title": "Electric vehicle battery recycling and second-life batteries", "nodes": [{"id": "lithium-ion batteries", "label": "lithium-ion batteries", "type": "MATERIAL", "description": "Lithium-ion batteries are rechargeable batteries used in various applications, including electric vehicles, and require proper recycling to recover critical materials. Lithium-ion batteries are rechargeable batteries commonly used in consumer electronics and electric vehicles, which require proper recycling at end-of-life. Lithium-ion batteries are rechargeable batteries commonly used in consumer electronics and electric vehicles.", "community": 10, "sources": ["S1", "S2", "S5"]}, {"id": "u.s. geological survey", "label": "U.S. Geological Survey", "type": "ORGANIZATION", "description": "The U.S. Geological Survey provides information on critical minerals, which are essential for the production of lithium-ion batteries.", "community": 10, "sources": ["S1"]}, {"id": "epa", "label": "EPA", "type": "GOVERNMENT", "description": "The Environmental Protection Agency recommends recycling lithium-ion batteries to prevent environmental harm and recover valuable materials. The Environmental Protection Agency is responsible for regulating hazardous waste and promoting recycling initiatives for lithium-ion batteries. The Environmental Protection Agency conducts workshops and releases reports on the recycling and disposal of lithium-ion batteries.", "community": 11, "sources": ["S1", "S2"]}, {"id": "call2recycle", "label": "Call2Recycle", "type": "ORGANIZATION", "description": "Call2Recycle is an organization that provides resources for recycling lithium-ion batteries and promotes battery safety. Call2Recycle is an organization that promotes battery recycling and provides information on proper management of used lithium-ion batteries. Call2Recycle operates as the primary Battery Stewardship Organization in multiple states, helping battery and product manufacturers fulfill recycling requirements.", "community": 13, "sources": ["S1", "S2"]}, {"id": "avoid the spark. be battery safety smart. campaign", "label": "Avoid the Spark. Be Battery Safety Smart. campaign", "type": "CONCEPT", "description": "This campaign aims to educate consumers about the safe management and recycling of used lithium-ion batteries.", "community": 13, "sources": ["S1"]}, {"id": "earth 911", "label": "Earth 911", "type": "ORGANIZATION", "description": "Earth 911 is a resource for finding recycling locations for lithium-ion batteries and other materials.", "community": 10, "sources": ["S1"]}, {"id": "critical minerals", "label": "critical minerals", "type": "MATERIAL", "description": "Critical minerals such as cobalt, graphite, and lithium are essential components of lithium-ion batteries and are economically important.", "community": 10, "sources": ["S1"]}, {"id": "u.s. department of transportation", "label": "U.S. Department of Transportation", "type": "GOVERNMENT", "description": "The U.S. Department of Transportation oversees regulations and campaigns related to the safe transportation of hazardous materials, including batteries.", "community": 10, "sources": ["S1"]}, {"id": "resource conservation and recovery act", "label": "Resource Conservation and Recovery Act", "type": "REGULATION", "description": "The Resource Conservation and Recovery Act establishes regulations for the management of hazardous waste, including lithium-ion batteries.", "community": 10, "sources": ["S1"]}, {"id": "osha", "label": "OSHA", "type": "GOVERNMENT", "description": "The Occupational Safety and Health Administration provides guidelines to ensure safety in workplaces handling lithium-ion batteries. The Occupational Safety and Health Administration issues guidelines to ensure safety in workplaces that handle lithium-ion batteries.", "community": 14, "sources": ["S1"]}, {"id": "universal waste regulations", "label": "universal waste regulations", "type": "REGULATION", "description": "Universal waste regulations provide a streamlined set of requirements for managing specific hazardous wastes, including lithium-ion batteries.", "community": 11, "sources": ["S1"]}, {"id": "very small quantity generator regulations", "label": "very small quantity generator regulations", "type": "REGULATION", "description": "These regulations apply to businesses generating small amounts of hazardous waste, including lithium-ion batteries, and may have reduced requirements.", "community": 10, "sources": ["S1"]}, {"id": "hazardous waste", "label": "hazardous waste", "type": "CONCEPT", "description": "Hazardous waste refers to waste that poses substantial or potential threats to public health or the environment, including discarded lithium-ion batteries.", "community": 11, "sources": ["S1"]}, {"id": "universal waste", "label": "universal waste", "type": "CONCEPT", "description": "Universal waste is a category of hazardous waste that is subject to less stringent regulations to facilitate recycling and proper disposal.", "community": -1, "sources": ["S1"]}, {"id": "department of labor", "label": "Department of Labor", "type": "GOVERNMENT", "description": "The Department of Labor oversees workplace safety regulations, including those related to lithium-ion batteries.", "community": 14, "sources": ["S1"]}, {"id": "dot", "label": "DOT", "type": "GOVERNMENT", "description": "The Department of Transportation regulates the transportation of hazardous materials, including lithium batteries.", "community": 12, "sources": ["S1"]}, {"id": "consumer product safety commission", "label": "Consumer Product Safety Commission", "type": "GOVERNMENT", "description": "The Commission provides safety information regarding consumer products, including those powered by lithium-ion batteries.", "community": 10, "sources": ["S1"]}, {"id": "hazardous materials regulations", "label": "Hazardous Materials Regulations", "type": "REGULATION", "description": "Regulations set by the DOT that govern the safe transportation of hazardous materials, including lithium batteries.", "community": 12, "sources": ["S1"]}, {"id": "safety advisory notice", "label": "Safety Advisory Notice", "type": "REGULATION", "description": "A notice issued by DOT to inform about the safe disposal and recycling of lithium batteries.", "community": 12, "sources": ["S1"]}, {"id": "summary report for the lithium-ion batteries in the waste stream workshops", "label": "Summary Report for the Lithium-Ion Batteries in the Waste Stream Workshops", "type": "REGULATION", "description": "A report released by the EPA summarizing findings from workshops on lithium-ion battery waste management.", "community": 11, "sources": ["S1"]}, {"id": "hazmat regulatory information", "label": "Hazmat regulatory information", "type": "CONCEPT", "description": "Guidelines and requirements for the safe handling and transportation of hazardous materials, including lithium batteries.", "community": 11, "sources": ["S1"]}, {"id": "environmental protection agency", "label": "Environmental Protection Agency", "type": "GOVERNMENT", "description": "The Environmental Protection Agency (EPA) is a U.S. government agency responsible for regulating and overseeing environmental protection, including battery recycling initiatives.", "community": 2, "sources": ["S2"]}, {"id": "bipartisan infrastructure law", "label": "Bipartisan Infrastructure Law", "type": "REGULATION", "description": "The Bipartisan Infrastructure Law allocates funding for developing battery collection best practices and guidelines to enhance battery recycling efforts.", "community": 2, "sources": ["S2"]}, {"id": "new jersey", "label": "New Jersey", "type": "GOVERNMENT", "description": "New Jersey is a U.S. state that has implemented comprehensive electric vehicle battery management requirements through its Electric and Hybrid Vehicle Battery Management Act.", "community": -1, "sources": ["S2"]}, {"id": "eu battery regulation 2023/1542", "label": "EU Battery Regulation 2023/1542", "type": "REGULATION", "description": "The EU Battery Regulation 2023/1542 establishes a comprehensive framework for battery sustainability and recycling compliance within the European Union.", "community": 3, "sources": ["S2"]}, {"id": "california", "label": "California", "type": "GOVERNMENT", "description": "California is a U.S. state known for its stringent battery recycling regulations, including stewardship programs for covered batteries. California established a Lithium-Ion Car Battery Recycling Advisory Group aimed at ensuring close to 100% of lithium-ion batteries are reused or recycled at end-of-life. California is the state where the Responsible Battery Recycling Act is implemented, aiming to improve battery recycling and reduce environmental harm.", "community": 3, "sources": ["S2", "S3", "S5"]}, {"id": "washington state", "label": "Washington State", "type": "GOVERNMENT", "description": "Washington State has enacted SB 5144, requiring battery producers to join Battery Stewardship Organizations and implement disposal bans.", "community": 3, "sources": ["S2"]}, {"id": "connecticut", "label": "Connecticut", "type": "GOVERNMENT", "description": "Connecticut is a U.S. state that has implemented producer responsibility frameworks for battery recycling. Connecticut has regulations requiring retailers to take back batteries one-for-one at the point of sale.", "community": 15, "sources": ["S2", "S4"]}, {"id": "colorado", "label": "Colorado", "type": "GOVERNMENT", "description": "Colorado is a U.S. state that has adopted similar producer responsibility laws for battery recycling.", "community": 15, "sources": ["S2"]}, {"id": "nebraska", "label": "Nebraska", "type": "GOVERNMENT", "description": "Nebraska is a U.S. state that has implemented battery recycling regulations aligned with producer responsibility models.", "community": 15, "sources": ["S2"]}, {"id": "illinois", "label": "Illinois", "type": "GOVERNMENT", "description": "Illinois is a U.S. state that has enacted battery recycling regulations similar to those in other states with producer responsibility frameworks.", "community": 15, "sources": ["S2"]}, {"id": "texas", "label": "Texas", "type": "GOVERNMENT", "description": "Texas is a U.S. state that maintains less restrictive approaches to battery recycling regulations. Texas requires fees for the collection of lead batteries and has specific exemptions for certain types of batteries.", "community": 16, "sources": ["S2", "S4"]}, {"id": "florida", "label": "Florida", "type": "GOVERNMENT", "description": "Florida is a U.S. state with less stringent battery recycling regulations compared to other states. Florida mandates a fee per battery at the retail level to encourage recycling.", "community": 16, "sources": ["S2", "S4"]}, {"id": "lithium", "label": "lithium", "type": "MATERIAL", "description": "Lithium is a critical material used in electric vehicle batteries, which is subject to specific recycling regulations. Lithium is a critical mineral used in batteries that is essential for national security. Lithium is a critical metal in batteries that can be recovered and reused, contributing to sustainable battery management.", "community": 17, "sources": ["S2", "S3"]}, {"id": "cobalt", "label": "cobalt", "type": "MATERIAL", "description": "Cobalt is a valuable material in battery production, with recycling targets established under EU regulations. Cobalt is a critical mineral contained in batteries that is essential for national security. Cobalt is a material that is subject to recycled content mandates under EU regulations to ensure material circularity.", "community": 18, "sources": ["S2"]}, {"id": "nickel", "label": "nickel", "type": "MATERIAL", "description": "Nickel is a key material in battery manufacturing, with recycling requirements set by regulations. Nickel is one of the metals that pose threats to human health and the environment when improperly managed. Nickel is included in the EU's recycled content requirements to promote advanced recycling technologies.", "community": 17, "sources": ["S2", "S3"]}, {"id": "lead", "label": "lead", "type": "MATERIAL", "description": "Lead is a hazardous material found in some batteries, with specific recycling targets mandated by regulations. Lead is one of the materials regulated under the EU's recycled content mandates to ensure sustainability.", "community": 18, "sources": ["S2"]}, {"id": "battery stewardship", "label": "battery stewardship", "type": "CONCEPT", "description": "Battery stewardship refers to the responsibility of producers to manage the lifecycle of batteries, including recycling and disposal.", "community": 3, "sources": ["S2"]}, {"id": "producer responsibility", "label": "producer responsibility", "type": "CONCEPT", "description": "Producer responsibility is a regulatory approach that holds manufacturers accountable for the entire lifecycle of their products, including recycling.", "community": 15, "sources": ["S2"]}, {"id": "recycling technologies", "label": "recycling technologies", "type": "TECHNOLOGY", "description": "Recycling technologies are methods developed to recover valuable materials from used batteries, ensuring sustainable practices. Advanced recycling technologies are being developed to meet stringent regulatory requirements and promote material circularity.", "community": 18, "sources": ["S2"]}, {"id": "battery collection best practices", "label": "battery collection best practices", "type": "CONCEPT", "description": "Battery collection best practices are guidelines aimed at improving the efficiency and safety of battery recycling processes.", "community": 2, "sources": ["S2"]}, {"id": "washington dc", "label": "Washington DC", "type": "GOVERNMENT", "description": "Washington DC exemplifies stewardship requirements where producers of covered batteries must join approved Battery Stewardship Organizations.", "community": 13, "sources": ["S2"]}, {"id": "european union", "label": "European Union", "type": "GOVERNMENT", "description": "The European Union's comprehensive approach to battery recycling regulations is becoming a template for regulatory development worldwide.", "community": 0, "sources": ["S2"]}, {"id": "battery passport", "label": "Battery Passport", "type": "CONCEPT", "description": "The Battery Passport concept represents growing international coordination on traceability requirements for battery information throughout supply chains.", "community": 7, "sources": ["S2"]}, {"id": "new york", "label": "New York", "type": "GOVERNMENT", "description": "New York requires retailers selling rechargeable batteries to collect used batteries of the same type from customers.", "community": 0, "sources": ["S2"]}, {"id": "maryland", "label": "Maryland", "type": "GOVERNMENT", "description": "Maryland's Rechargeable Battery Management Law requires management programs for products containing non-removable batteries.", "community": 8, "sources": ["S2"]}, {"id": "natural graphite", "label": "natural graphite", "type": "MATERIAL", "description": "Natural graphite is one of the materials sourced for battery production and is covered under supply chain due diligence regulations.", "community": 10, "sources": ["S2"]}, {"id": "ni-cd batteries", "label": "Ni-Cd batteries", "type": "MATERIAL", "description": "Ni-Cd batteries are non-removable batteries that require management programs under Maryland's Rechargeable Battery Management Law.", "community": 8, "sources": ["S2"]}, {"id": "small sealed lead batteries", "label": "small sealed lead batteries", "type": "MATERIAL", "description": "Small sealed lead batteries are also covered under Maryland's Rechargeable Battery Management Law and require specific management programs.", "community": 8, "sources": ["S2"]}, {"id": "automotive sector", "label": "automotive sector", "type": "CONCEPT", "description": "The automotive sector faces stringent emerging requirements for electric vehicle batteries, particularly regarding recycling.", "community": 10, "sources": ["S2"]}, {"id": "consumer goods sector", "label": "consumer goods sector", "type": "CONCEPT", "description": "The consumer goods sector must navigate distinct regulatory requirements for battery recycling.", "community": 0, "sources": ["S2"]}, {"id": "industrial applications", "label": "industrial applications", "type": "CONCEPT", "description": "Industrial applications face specific Universal Waste requirements for battery management.", "community": 8, "sources": ["S2"]}, {"id": "battery stewardship programs", "label": "battery stewardship programs", "type": "CONCEPT", "description": "Battery stewardship programs create producer responsibility frameworks for manufacturers to finance and operate collection and recycling systems.", "community": 0, "sources": ["S2"]}, {"id": "recycling compliance", "label": "recycling compliance", "type": "CONCEPT", "description": "Recycling compliance is supported by the Battery Passport concept, which tracks battery information throughout supply chains.", "community": 7, "sources": ["S2"]}, {"id": "eu regulation", "label": "EU Regulation", "type": "REGULATION", "description": "The EU Regulation sets comprehensive compliance monitoring and recycling targets for battery recycling, including penalties for violations.", "community": 21, "sources": ["S2"]}, {"id": "battery stewardship organizations", "label": "Battery Stewardship Organizations", "type": "ORGANIZATION", "description": "These organizations help companies comply with battery recycling regulations and develop collection and recycling systems.", "community": 21, "sources": ["S2"]}, {"id": "blockchain", "label": "Blockchain", "type": "TECHNOLOGY", "description": "Blockchain technology enables tamper-proof compliance documentation and material traceability in battery recycling.", "community": 20, "sources": ["S2"]}, {"id": "digital solutions", "label": "Digital Solutions", "type": "TECHNOLOGY", "description": "Digital solutions improve tracking, verification, and compliance monitoring systems for battery recycling regulations.", "community": 20, "sources": ["S2"]}, {"id": "lithium batteries", "label": "Lithium Batteries", "type": "MATERIAL", "description": "Lithium batteries are subject to specific regulations due to their unique characteristics and environmental impact.", "community": 18, "sources": ["S2"]}, {"id": "circular economy policies", "label": "Circular Economy Policies", "type": "CONCEPT", "description": "Circular economy policies aim to enhance material recovery and recycling in the battery industry.", "community": 18, "sources": ["S2"]}, {"id": "compliance monitoring systems", "label": "Compliance Monitoring Systems", "type": "TECHNOLOGY", "description": "These systems are designed to ensure adherence to battery recycling regulations and improve oversight.", "community": 20, "sources": ["S2"]}, {"id": "compliance strategies", "label": "Compliance Strategies", "type": "CONCEPT", "description": "Effective compliance strategies are essential for companies to navigate evolving battery recycling regulations.", "community": 21, "sources": ["S2"]}, {"id": "producer responsibility programs", "label": "Producer Responsibility Programs", "type": "CONCEPT", "description": "These programs expand obligations for producers regarding battery collection and recycling.", "community": 21, "sources": ["S2"]}, {"id": "material recovery systems", "label": "Material Recovery Systems", "type": "TECHNOLOGY", "description": "Material recovery systems are developed to enhance the efficiency of recycling processes in the battery industry.", "community": 18, "sources": ["S2"]}, {"id": "collection networks", "label": "Collection Networks", "type": "CONCEPT", "description": "Comprehensive collection networks are being established to facilitate battery recycling and compliance.", "community": 21, "sources": ["S2"]}, {"id": "supply chain due diligence programs", "label": "Supply Chain Due Diligence Programs", "type": "CONCEPT", "description": "These programs are essential for managing risks and ensuring compliance in battery supply chains.", "community": 19, "sources": ["S2"]}, {"id": "regulatory compliance", "label": "Regulatory Compliance", "type": "CONCEPT", "description": "Regulatory compliance is critical for companies operating in the battery recycling sector to avoid penalties.", "community": 19, "sources": ["S2"]}, {"id": "environmental sustainability", "label": "Environmental Sustainability", "type": "CONCEPT", "description": "Environmental sustainability is a key objective driving the development of battery recycling regulations.", "community": 19, "sources": ["S2"]}, {"id": "resource security", "label": "Resource Security", "type": "CONCEPT", "description": "Resource security is a concern addressed by comprehensive battery recycling frameworks.", "community": 19, "sources": ["S2"]}, {"id": "calrecycle", "label": "CalRecycle", "type": "ORGANIZATION", "description": "CalRecycle is the California state agency responsible for overseeing battery recycling and the implementation of the Responsible Battery Recycling Act.", "community": 17, "sources": ["S3"]}, {"id": "responsible battery recycling act", "label": "Responsible Battery Recycling Act", "type": "REGULATION", "description": "The Responsible Battery Recycling Act mandates the battery industry to manage the collection, recycling, and end-of-life processes for covered batteries.", "community": 17, "sources": ["S3"]}, {"id": "copper", "label": "copper", "type": "MATERIAL", "description": "Copper is one of the valuable metals contained in batteries that can be recovered through proper recycling processes.", "community": 17, "sources": ["S3"]}, {"id": "bci", "label": "BCI", "type": "ORGANIZATION", "description": "The Battery Council International (BCI) is an organization that provides a state-by-state summary of battery recycling laws in the United States. The Battery Council International (BCI) is an organization that provides guidance on state recycling laws and promotes battery recycling practices.", "community": 16, "sources": ["S4"]}, {"id": "lead-acid battery", "label": "lead-acid battery", "type": "MATERIAL", "description": "Lead-acid batteries are rechargeable batteries that consist of lead and sulfuric acid, commonly used in vehicles and other applications. Lead-acid batteries are devices designed to store electrical energy through chemical reactions involving lead and sulfuric acid, commonly used in vehicles. A specific type of lead battery designed for use in motor vehicles, aviation equipment, or marine vessels.", "community": 5, "sources": ["S4"]}, {"id": "united states", "label": "United States", "type": "GOVERNMENT", "description": "The United States has federal and state authorities that regulate battery recycling, including lead-acid batteries.", "community": 5, "sources": ["S4"]}, {"id": "state recycling laws", "label": "State Recycling Laws", "type": "REGULATION", "description": "State Recycling Laws govern the recycling and deposit requirements for lead-acid batteries, including refundable deposits and definitions of battery types. Laws that govern the recycling and management of lead and lead-acid batteries. State Recycling Laws govern the recycling and disposal of lead and lead-acid batteries, including deposit and refund policies.", "community": 5, "sources": ["S4"]}, {"id": "lead battery", "label": "lead battery", "type": "MATERIAL", "description": "A type of battery that consists of lead and sulfuric acid, used as a power source in various applications. A lead battery is a type of rechargeable battery that contains lead and sulfuric acid, commonly used as a power source in vehicles. Lead battery refers to a type of battery that consists of lead and sulfuric acid, commonly used as a power source in vehicles.", "community": 5, "sources": ["S4"]}, {"id": "kansas city, mo", "label": "Kansas City, MO", "type": "FACILITY", "description": "A location where regulations regarding lead and lead-acid batteries are enforced.", "community": 5, "sources": ["S4"]}, {"id": "new york department of environmental conservation", "label": "New York Department of Environmental Conservation", "type": "GOVERNMENT", "description": "The New York Department of Environmental Conservation regulates the handling and recycling of lead-acid batteries in New York State.", "community": 5, "sources": ["S4"]}, {"id": "bci model", "label": "BCI Model", "type": "REGULATION", "description": "The BCI Model refers to a set of guidelines for the management and recycling of lead-acid batteries.", "community": 5, "sources": ["S4"]}, {"id": "kansas city", "label": "Kansas City", "type": "GOVERNMENT", "description": "Kansas City has specific ordinances that regulate the return and storage of used batteries to ensure safe recycling.", "community": 16, "sources": ["S4"]}, {"id": "minnesota", "label": "Minnesota", "type": "GOVERNMENT", "description": "Minnesota has regulations that limit the number of batteries a consumer can return to retailers, promoting responsible recycling.", "community": 16, "sources": ["S4"]}, {"id": "nevada", "label": "Nevada", "type": "GOVERNMENT", "description": "Nevada has regulations regarding the disposal of lead batteries, allowing disposal at permitted facilities.", "community": 16, "sources": ["S4"]}, {"id": "maine", "label": "Maine", "type": "GOVERNMENT", "description": "Maine requires a fee per battery at the retail level to promote battery recycling.", "community": 16, "sources": ["S4"]}, {"id": "tennessee", "label": "Tennessee", "type": "GOVERNMENT", "description": "Tennessee prohibits landfills from accepting lead-acid batteries, ensuring they are returned for recycling.", "community": 16, "sources": ["S4"]}, {"id": "south carolina", "label": "South Carolina", "type": "GOVERNMENT", "description": "South Carolina requires retailers to collect fees for lead batteries sold, with funds directed to a Solid Waste Management Trust Fund.", "community": 16, "sources": ["S4"]}, {"id": "responsible battery recycling act of 2022", "label": "Responsible Battery Recycling Act of 2022", "type": "REGULATION", "description": "A California legislation that mandates manufacturers to establish a battery recycling program and stewardship plan for the collection and recycling of batteries.", "community": 3, "sources": ["S5"]}, {"id": "cirba solutions", "label": "Cirba Solutions", "type": "ORGANIZATION", "description": "A company involved in supporting California's battery recycling efforts and expanding lithium-ion battery recycling operations.", "community": 3, "sources": ["S5"]}, {"id": "u.s. department of energy", "label": "U.S. Department of Energy", "type": "GOVERNMENT", "description": "A government agency that collaborates with Cirba Solutions to promote battery recycling and critical materials infrastructure.", "community": 3, "sources": ["S5"]}, {"id": "department of toxic substances control", "label": "Department of Toxic Substances Control", "type": "GOVERNMENT", "description": "The department that oversees the submission of stewardship plans under the Responsible Battery Recycling Act.", "community": 3, "sources": ["S5"]}, {"id": "recycling facilities", "label": "recycling facilities", "type": "FACILITY", "description": "Facilities that will be prioritized for battery recycling closer to the point of generation to reduce transportation emissions.", "community": 3, "sources": ["S5"]}], "links": [{"source": "lithium-ion batteries", "target": "u.s. geological survey", "label": "SUPPLIES", "description": "Lithium-ion batteries are made from critical minerals that the U.S. Geological Survey monitors.", "sources": ["S1"]}, {"source": "lithium-ion batteries", "target": "epa", "label": "REGULATES", "description": "The EPA sets guidelines for the proper recycling of lithium-ion batteries to protect human health and the environment.", "sources": ["S1"]}, {"source": "lithium-ion batteries", "target": "call2recycle", "label": "PARTNERS_WITH", "description": "Lithium-ion batteries are promoted for recycling through the initiatives of Call2Recycle.", "sources": ["S1"]}, {"source": "lithium-ion batteries", "target": "avoid the spark. be battery safety smart. campaign", "label": "PART_OF", "description": "The campaign includes lithium-ion batteries in its educational efforts about battery safety and recycling.", "sources": ["S1"]}, {"source": "lithium-ion batteries", "target": "earth 911", "label": "SUPPLIES", "description": "Earth 911 provides resources for recycling lithium-ion batteries.", "sources": ["S1"]}, {"source": "lithium-ion batteries", "target": "earth 911", "label": "LOCATED_IN", "description": "Earth 911 operates within the U.S. to provide recycling information for lithium-ion batteries.", "sources": ["S1"]}, {"source": "epa", "target": "call2recycle", "label": "FUNDS", "description": "The EPA may support initiatives like Call2Recycle to promote battery recycling.", "sources": ["S1"]}, {"source": "epa", "target": "lithium-ion batteries", "label": "REGULATES", "description": "The EPA regulates the disposal and recycling of lithium-ion batteries to ensure environmental safety. The EPA regulates the recycling and management of lithium-ion batteries under federal hazardous waste laws.", "sources": ["S1"]}, {"source": "epa", "target": "lithium-ion batteries", "label": "RECOVERS", "description": "EPA conducts workshops and studies aimed at improving the recovery and recycling of lithium-ion batteries.", "sources": ["S1"]}, {"source": "epa", "target": "universal waste regulations", "label": "DEVELOPS", "description": "The EPA develops universal waste regulations to streamline the management of hazardous wastes, including lithium-ion batteries. The EPA is developing tailored universal waste standards for lithium batteries to improve recycling practices.", "sources": ["S1"]}, {"source": "epa", "target": "hazardous waste", "label": "REGULATES", "description": "The EPA regulates hazardous waste, which includes discarded lithium-ion batteries.", "sources": ["S1"]}, {"source": "epa", "target": "summary report for the lithium-ion batteries in the waste stream workshops", "label": "FUNDS", "description": "EPA funded workshops that resulted in a summary report on lithium-ion battery waste management.", "sources": ["S1"]}, {"source": "epa", "target": "hazmat regulatory information", "label": "SUPPLIES", "description": "EPA provides hazmat regulatory information relevant to the recycling and disposal of lithium-ion batteries.", "sources": ["S1"]}, {"source": "epa", "target": "hazardous materials regulations", "label": "REGULATES", "description": "EPA collaborates with DOT to ensure compliance with hazardous materials regulations concerning lithium batteries.", "sources": ["S1"]}, {"source": "epa", "target": "battery stewardship programs", "label": "REGULATES", "description": "The EPA regulates battery stewardship programs to ensure they are technically and economically feasible.", "sources": ["S2"]}, {"source": "epa", "target": "lithium batteries", "label": "REGULATES", "description": "The EPA regulates the handling and recycling of lithium batteries under specific guidelines.", "sources": ["S2"]}, {"source": "call2recycle", "target": "avoid the spark. be battery safety smart. campaign", "label": "PARTNERS_WITH", "description": "Call2Recycle collaborates with various industry groups in the campaign to promote battery safety.", "sources": ["S1"]}, {"source": "call2recycle", "target": "lithium-ion batteries", "label": "SUPPLIES", "description": "Call2Recycle supplies information and resources for the recycling of lithium-ion batteries.", "sources": ["S1"]}, {"source": "call2recycle", "target": "washington dc", "label": "PARTNERS_WITH", "description": "Call2Recycle collaborates with Washington DC to help producers fulfill recycling requirements.", "sources": ["S2"]}, {"source": "critical minerals", "target": "lithium-ion batteries", "label": "RECOVERS", "description": "Lithium-ion batteries contain critical minerals that can be recovered through recycling.", "sources": ["S1"]}, {"source": "u.s. department of transportation", "target": "lithium-ion batteries", "label": "REGULATES", "description": "The U.S. Department of Transportation regulates the transportation of lithium-ion batteries as hazardous materials.", "sources": ["S1"]}, {"source": "resource conservation and recovery act", "target": "lithium-ion batteries", "label": "REGULATES", "description": "The Resource Conservation and Recovery Act regulates the management of lithium-ion batteries as hazardous waste.", "sources": ["S1"]}, {"source": "osha", "target": "lithium-ion batteries", "label": "REGULATES", "description": "OSHA regulates workplace safety standards related to the handling of lithium-ion batteries. OSHA provides safety guidelines for workplaces that handle lithium-ion batteries.", "sources": ["S1"]}, {"source": "universal waste regulations", "target": "lithium-ion batteries", "label": "REGULATES", "description": "Universal waste regulations apply to the management of lithium-ion batteries to facilitate their recycling.", "sources": ["S1"]}, {"source": "very small quantity generator regulations", "target": "lithium-ion batteries", "label": "REGULATES", "description": "Very small quantity generator regulations provide specific guidelines for businesses generating small amounts of lithium-ion batteries.", "sources": ["S1"]}, {"source": "department of labor", "target": "osha", "label": "REGULATES", "description": "The Department of Labor regulates OSHA, which issues safety guidelines for handling lithium-ion batteries.", "sources": ["S1"]}, {"source": "dot", "target": "hazardous materials regulations", "label": "REGULATES", "description": "DOT establishes the Hazardous Materials Regulations that govern the transportation of lithium batteries.", "sources": ["S1"]}, {"source": "dot", "target": "safety advisory notice", "label": "REGULATES", "description": "DOT issued a Safety Advisory Notice to inform about the safe disposal and recycling of lithium batteries.", "sources": ["S1"]}, {"source": "dot", "target": "lithium-ion batteries", "label": "REGULATES", "description": "DOT regulates the transportation of lithium-ion batteries under hazardous materials regulations.", "sources": ["S1"]}, {"source": "consumer product safety commission", "target": "lithium-ion batteries", "label": "REGULATES", "description": "The Commission regulates safety standards for consumer products that use lithium-ion batteries.", "sources": ["S1"]}, {"source": "environmental protection agency", "target": "bipartisan infrastructure law", "label": "FUNDS", "description": "The Environmental Protection Agency is funded by the Bipartisan Infrastructure Law to develop battery collection best practices.", "sources": ["S2"]}, {"source": "eu battery regulation 2023/1542", "target": "lithium", "label": "REGULATES", "description": "The EU Battery Regulation 2023/1542 sets recycling targets for lithium as part of its comprehensive battery management framework.", "sources": ["S2"]}, {"source": "eu battery regulation 2023/1542", "target": "battery stewardship", "label": "REGULATES", "description": "The EU Battery Regulation 2023/1542 incorporates battery stewardship principles into its regulatory framework.", "sources": ["S2"]}, {"source": "california", "target": "battery stewardship", "label": "REGULATES", "description": "California implements battery stewardship regulations to ensure responsible recycling and disposal of batteries.", "sources": ["S2"]}, {"source": "california", "target": "lithium-ion batteries", "label": "REGULATES", "description": "California regulates the recycling of lithium-ion batteries through its advisory group.", "sources": ["S2"]}, {"source": "california", "target": "calrecycle", "label": "FUNDS", "description": "California provides funding to CalRecycle to support its battery recycling initiatives.", "sources": ["S3"]}, {"source": "california", "target": "recycling facilities", "label": "REGULATES", "description": "California regulates the establishment of recycling facilities as part of the Responsible Battery Recycling Act.", "sources": ["S5"]}, {"source": "california", "target": "cirba solutions", "label": "FUNDS", "description": "California's initiatives may provide funding opportunities for organizations like Cirba Solutions involved in battery recycling.", "sources": ["S5"]}, {"source": "washington state", "target": "battery stewardship", "label": "REGULATES", "description": "Washington State's SB 5144 mandates battery producers to participate in battery stewardship organizations.", "sources": ["S2"]}, {"source": "connecticut", "target": "producer responsibility", "label": "REGULATES", "description": "Connecticut has established producer responsibility laws for battery recycling.", "sources": ["S2"]}, {"source": "connecticut", "target": "bci", "label": "REGULATES", "description": "Connecticut's one-for-one battery return requirement is based on BCI's model legislation.", "sources": ["S4"]}, {"source": "colorado", "target": "producer responsibility", "label": "REGULATES", "description": "Colorado has implemented producer responsibility frameworks for battery recycling.", "sources": ["S2"]}, {"source": "nebraska", "target": "producer responsibility", "label": "REGULATES", "description": "Nebraska has adopted producer responsibility regulations for battery recycling.", "sources": ["S2"]}, {"source": "illinois", "target": "producer responsibility", "label": "REGULATES", "description": "Illinois has enacted producer responsibility laws similar to those in other states.", "sources": ["S2"]}, {"source": "texas", "target": "bci", "label": "REGULATES", "description": "Texas's fee requirements for battery collection are based on BCI's recommendations.", "sources": ["S4"]}, {"source": "florida", "target": "bci", "label": "REGULATES", "description": "Florida's retail battery fee regulations are influenced by BCI's recycling initiatives.", "sources": ["S4"]}, {"source": "lithium", "target": "recycling technologies", "label": "DEVELOPS", "description": "Recycling technologies are developed to recover lithium from used batteries.", "sources": ["S2"]}, {"source": "lithium", "target": "lithium-ion batteries", "label": "RECOVERS", "description": "Lithium is recovered from lithium-ion batteries during the recycling process.", "sources": ["S2"]}, {"source": "lithium", "target": "responsible battery recycling act", "label": "SUPPLIES", "description": "Lithium recovered from batteries can be supplied to manufacturers, supporting the goals of the Responsible Battery Recycling Act.", "sources": ["S3"]}, {"source": "cobalt", "target": "recycling technologies", "label": "DEVELOPS", "description": "Recycling technologies are developed to recover cobalt from used batteries.", "sources": ["S2"]}, {"source": "cobalt", "target": "lithium-ion batteries", "label": "RECOVERS", "description": "Cobalt is recovered from lithium-ion batteries during the recycling process.", "sources": ["S2"]}, {"source": "cobalt", "target": "circular economy policies", "label": "SUPPLIES", "description": "Cobalt is supplied under circular economy policies that mandate recycled content in battery production.", "sources": ["S2"]}, {"source": "nickel", "target": "recycling technologies", "label": "DEVELOPS", "description": "Recycling technologies are developed to recover nickel from used batteries.", "sources": ["S2"]}, {"source": "nickel", "target": "lithium-ion batteries", "label": "RECOVERS", "description": "Nickel is recovered from lithium-ion batteries during the recycling process.", "sources": ["S2"]}, {"source": "nickel", "target": "circular economy policies", "label": "SUPPLIES", "description": "Nickel is supplied in accordance with circular economy policies that promote recycling and sustainability.", "sources": ["S2"]}, {"source": "nickel", "target": "responsible battery recycling act", "label": "SUPPLIES", "description": "Nickel recovered through recycling efforts can be supplied to industries as part of the Responsible Battery Recycling Act's objectives.", "sources": ["S3"]}, {"source": "lead", "target": "recycling technologies", "label": "DEVELOPS", "description": "Recycling technologies are developed to recover lead from used batteries.", "sources": ["S2"]}, {"source": "lead", "target": "circular economy policies", "label": "SUPPLIES", "description": "Lead is supplied under circular economy policies that require its recycling in battery production.", "sources": ["S2"]}, {"source": "battery stewardship", "target": "producer responsibility", "label": "PART_OF", "description": "Battery stewardship is a concept that is part of the broader producer responsibility framework.", "sources": ["S2"]}, {"source": "battery stewardship", "target": "california", "label": "REGULATES", "description": "California's regulations include battery stewardship as a key component of battery recycling compliance.", "sources": ["S2"]}, {"source": "recycling technologies", "target": "material recovery systems", "label": "DEVELOPS", "description": "Recycling technologies develop material recovery systems to enhance recycling efficiency.", "sources": ["S2"]}, {"source": "recycling technologies", "target": "environmental sustainability", "label": "SUPPLIES", "description": "Recycling technologies supply solutions that contribute to environmental sustainability in battery recycling.", "sources": ["S2"]}, {"source": "battery collection best practices", "target": "environmental protection agency", "label": "DEVELOPS", "description": "The Environmental Protection Agency develops battery collection best practices to enhance recycling efforts.", "sources": ["S2"]}, {"source": "european union", "target": "battery stewardship programs", "label": "REGULATES", "description": "The European Union sets regulations that govern battery stewardship programs across its member states.", "sources": ["S2"]}, {"source": "battery passport", "target": "recycling compliance", "label": "SUPPLIES", "description": "The Battery Passport concept supplies a framework for tracking battery information to ensure recycling compliance.", "sources": ["S2"]}, {"source": "new york", "target": "battery stewardship programs", "label": "REGULATES", "description": "New York regulates battery stewardship programs requiring retailers to collect used batteries.", "sources": ["S2"]}, {"source": "maryland", "target": "ni-cd batteries", "label": "REGULATES", "description": "Maryland regulates the management of Ni-Cd batteries through its Rechargeable Battery Management Law.", "sources": ["S2"]}, {"source": "maryland", "target": "small sealed lead batteries", "label": "REGULATES", "description": "Maryland's Rechargeable Battery Management Law also regulates small sealed lead batteries.", "sources": ["S2"]}, {"source": "natural graphite", "target": "lithium-ion batteries", "label": "RECOVERS", "description": "Natural graphite is recovered from lithium-ion batteries during the recycling process.", "sources": ["S2"]}, {"source": "automotive sector", "target": "lithium-ion batteries", "label": "REGULATES", "description": "The automotive sector is subject to stringent regulations regarding the recycling of lithium-ion batteries.", "sources": ["S2"]}, {"source": "consumer goods sector", "target": "battery stewardship programs", "label": "REGULATES", "description": "The consumer goods sector must comply with battery stewardship programs as part of recycling regulations.", "sources": ["S2"]}, {"source": "industrial applications", "target": "small sealed lead batteries", "label": "REGULATES", "description": "Industrial applications are required to manage small sealed lead batteries under Universal Waste requirements.", "sources": ["S2"]}, {"source": "battery stewardship programs", "target": "call2recycle", "label": "PART_OF", "description": "Call2Recycle is part of the battery stewardship programs that help manage recycling efforts.", "sources": ["S2"]}, {"source": "eu regulation", "target": "battery stewardship organizations", "label": "REGULATES", "description": "The EU Regulation sets rules that Battery Stewardship Organizations must follow to ensure compliance with recycling targets.", "sources": ["S2"]}, {"source": "battery stewardship organizations", "target": "compliance strategies", "label": "DEVELOPS", "description": "Battery Stewardship Organizations develop compliance strategies for companies to meet regulatory requirements.", "sources": ["S2"]}, {"source": "blockchain", "target": "compliance monitoring systems", "label": "SUPPLIES", "description": "Blockchain technology supplies tamper-proof documentation for compliance monitoring systems in battery recycling.", "sources": ["S2"]}, {"source": "digital solutions", "target": "compliance monitoring systems", "label": "DEVELOPS", "description": "Digital solutions develop compliance monitoring systems that enhance regulatory oversight in battery recycling.", "sources": ["S2"]}, {"source": "lithium batteries", "target": "recycling technologies", "label": "SUPPLIES", "description": "Lithium batteries supply the need for advanced recycling technologies due to their unique regulatory requirements.", "sources": ["S2"]}, {"source": "compliance monitoring systems", "target": "regulatory compliance", "label": "SUPPLIES", "description": "Compliance monitoring systems supply the necessary oversight to ensure regulatory compliance in battery recycling.", "sources": ["S2"]}, {"source": "compliance monitoring systems", "target": "digital solutions", "label": "PART_OF", "description": "Compliance monitoring systems are part of the digital solutions that enhance regulatory oversight.", "sources": ["S2"]}, {"source": "compliance strategies", "target": "regulatory compliance", "label": "DEVELOPS", "description": "Compliance strategies are developed to ensure adherence to evolving regulatory compliance in battery recycling.", "sources": ["S2"]}, {"source": "producer responsibility programs", "target": "collection networks", "label": "DEVELOPS", "description": "Producer responsibility programs develop collection networks to facilitate battery recycling.", "sources": ["S2"]}, {"source": "material recovery systems", "target": "recycling technologies", "label": "PART_OF", "description": "Material recovery systems are part of the broader recycling technologies developed for battery recycling.", "sources": ["S2"]}, {"source": "collection networks", "target": "battery stewardship organizations", "label": "PART_OF", "description": "Collection networks are part of the initiatives led by Battery Stewardship Organizations to enhance recycling efforts.", "sources": ["S2"]}, {"source": "supply chain due diligence programs", "target": "regulatory compliance", "label": "SUPPLIES", "description": "Supply chain due diligence programs supply the framework for ensuring regulatory compliance in battery supply chains.", "sources": ["S2"]}, {"source": "environmental sustainability", "target": "regulatory compliance", "label": "REGULATES", "description": "Environmental sustainability regulations govern compliance requirements for battery recycling.", "sources": ["S2"]}, {"source": "resource security", "target": "regulatory compliance", "label": "REGULATES", "description": "Resource security regulations set compliance standards for battery recycling practices.", "sources": ["S2"]}, {"source": "calrecycle", "target": "responsible battery recycling act", "label": "REGULATES", "description": "CalRecycle regulates the implementation of the Responsible Battery Recycling Act in California.", "sources": ["S3"]}, {"source": "calrecycle", "target": "responsible battery recycling act", "label": "DEVELOPS", "description": "CalRecycle develops regulations and guidelines to enforce the Responsible Battery Recycling Act.", "sources": ["S3"]}, {"source": "calrecycle", "target": "copper", "label": "RECOVERS", "description": "CalRecycle oversees programs that aim to recover copper from batteries through recycling.", "sources": ["S3"]}, {"source": "calrecycle", "target": "nickel", "label": "RECOVERS", "description": "CalRecycle facilitates the recovery of nickel from batteries as part of its recycling initiatives.", "sources": ["S3"]}, {"source": "calrecycle", "target": "lithium", "label": "RECOVERS", "description": "CalRecycle is involved in the recovery of lithium from batteries to promote sustainable practices.", "sources": ["S3"]}, {"source": "responsible battery recycling act", "target": "california", "label": "PART_OF", "description": "The Responsible Battery Recycling Act is a regulation that applies specifically within the jurisdiction of California.", "sources": ["S3"]}, {"source": "responsible battery recycling act", "target": "calrecycle", "label": "FUNDS", "description": "The Responsible Battery Recycling Act provides funding mechanisms for CalRecycle to implement battery recycling programs.", "sources": ["S3"]}, {"source": "copper", "target": "responsible battery recycling act", "label": "SUPPLIES", "description": "Copper recovered from batteries can be supplied back into the market as part of the goals of the Responsible Battery Recycling Act.", "sources": ["S3"]}, {"source": "bci", "target": "united states", "label": "REGULATES", "description": "BCI provides guidance on battery recycling laws regulated by federal and state authorities in the United States.", "sources": ["S4"]}, {"source": "bci", "target": "lead-acid battery", "label": "SUPPLIES", "description": "BCI supplies information on the recycling laws applicable to lead-acid batteries.", "sources": ["S4"]}, {"source": "bci", "target": "kansas city", "label": "REGULATES", "description": "BCI provides model legislation that influences Kansas City's ordinances on battery recycling.", "sources": ["S4"]}, {"source": "lead-acid battery", "target": "united states", "label": "REGULATES", "description": "Lead-acid battery recycling is regulated by both federal and state authorities in the United States.", "sources": ["S4"]}, {"source": "state recycling laws", "target": "lead-acid battery", "label": "REGULATES", "description": "State Recycling Laws set rules for the recycling and handling of lead-acid batteries. State Recycling Laws set rules for the management and recycling of lead-acid batteries.", "sources": ["S4"]}, {"source": "state recycling laws", "target": "lead battery", "label": "REGULATES", "description": "State Recycling Laws set rules for the management and recycling of lead batteries. State Recycling Laws set rules for the recycling and disposal of lead batteries.", "sources": ["S4"]}, {"source": "lead battery", "target": "lead-acid battery", "label": "PART_OF", "description": "Lead batteries are a category that includes lead-acid batteries as a specific type.", "sources": ["S4"]}, {"source": "kansas city, mo", "target": "state recycling laws", "label": "LOCATED_IN", "description": "Kansas City, MO is a location where State Recycling Laws are applicable.", "sources": ["S4"]}, {"source": "kansas city, mo", "target": "lead battery", "label": "REGULATES", "description": "Kansas City, MO enforces regulations regarding the recycling of lead batteries.", "sources": ["S4"]}, {"source": "kansas city, mo", "target": "lead-acid battery", "label": "REGULATES", "description": "Kansas City, MO enforces regulations regarding the recycling of lead-acid batteries.", "sources": ["S4"]}, {"source": "new york department of environmental conservation", "target": "lead battery", "label": "REGULATES", "description": "The New York Department of Environmental Conservation sets rules for the recycling and management of lead batteries.", "sources": ["S4"]}, {"source": "new york department of environmental conservation", "target": "lead-acid battery", "label": "REGULATES", "description": "The New York Department of Environmental Conservation regulates the use and recycling of lead-acid batteries.", "sources": ["S4"]}, {"source": "bci model", "target": "lead battery", "label": "REGULATES", "description": "The BCI Model provides regulations for the handling and recycling of lead batteries.", "sources": ["S4"]}, {"source": "bci model", "target": "lead-acid battery", "label": "REGULATES", "description": "The BCI Model includes guidelines for the management of lead-acid batteries.", "sources": ["S4"]}, {"source": "kansas city", "target": "bci", "label": "REGULATES", "description": "Kansas City's ordinances are influenced by guidelines set forth by BCI regarding battery recycling.", "sources": ["S4"]}, {"source": "minnesota", "target": "bci", "label": "REGULATES", "description": "Minnesota's regulations on battery returns are aligned with BCI's model legislation.", "sources": ["S4"]}, {"source": "nevada", "target": "bci", "label": "REGULATES", "description": "Nevada's disposal regulations for lead batteries are informed by BCI's guidelines.", "sources": ["S4"]}, {"source": "maine", "target": "bci", "label": "REGULATES", "description": "Maine's battery recycling fees are established in accordance with BCI's guidelines.", "sources": ["S4"]}, {"source": "tennessee", "target": "bci", "label": "REGULATES", "description": "Tennessee's prohibition on landfill disposal of lead-acid batteries is supported by BCI's recycling policies.", "sources": ["S4"]}, {"source": "south carolina", "target": "bci", "label": "REGULATES", "description": "South Carolina's fee collection for lead batteries is guided by BCI's recommendations.", "sources": ["S4"]}, {"source": "responsible battery recycling act of 2022", "target": "california", "label": "REGULATES", "description": "The Responsible Battery Recycling Act of 2022 is a regulation enacted by the state of California.", "sources": ["S5"]}, {"source": "responsible battery recycling act of 2022", "target": "department of toxic substances control", "label": "REGULATES", "description": "The Act requires plans to be submitted to the Department of Toxic Substances Control for oversight.", "sources": ["S5"]}, {"source": "cirba solutions", "target": "responsible battery recycling act of 2022", "label": "PARTNERS_WITH", "description": "Cirba Solutions is collaborating with California's Responsible Battery Recycling Act to support battery recycling initiatives.", "sources": ["S5"]}, {"source": "cirba solutions", "target": "u.s. department of energy", "label": "PARTNERS_WITH", "description": "Cirba Solutions partners with the U.S. Department of Energy to enhance battery recycling operations.", "sources": ["S5"]}, {"source": "cirba solutions", "target": "lithium-ion batteries", "label": "RECOVERS", "description": "Cirba Solutions focuses on recycling lithium-ion batteries as part of its operations.", "sources": ["S5"]}, {"source": "cirba solutions", "target": "recycling facilities", "label": "SUPPLIES", "description": "Cirba Solutions supplies materials recovered from recycling facilities as part of its operations.", "sources": ["S5"]}, {"source": "department of toxic substances control", "target": "responsible battery recycling act of 2022", "label": "REGULATES", "description": "The Department of Toxic Substances Control regulates the submission of stewardship plans required by the Responsible Battery Recycling Act.", "sources": ["S5"]}, {"source": "recycling facilities", "target": "lithium-ion batteries", "label": "RECOVERS", "description": "Recycling facilities are designed to recover materials from lithium-ion batteries.", "sources": ["S5"]}], "communities": 18, "type_colors": {"ORGANIZATION": "#4ECDC4", "PERSON": "#FF6B6B", "GOVERNMENT": "#60a5fa", "REGULATION": "#FBBF24", "TECHNOLOGY": "#86efac", "MATERIAL": "#c084fc", "FACILITY": "#fb923c", "CONCEPT": "#f472b6"}, "sources": {"S1": {"title": "Used Lithium-Ion Batteries", "url": "https://www.epa.gov/recycle/used-lithium-ion-batteries", "source": "U.S. Environmental Protection Agency (.gov)", "date": ""}, "S2": {"title": "Complete Guide to Battery Recycling Regulations & ...", "url": "https://www.greenli-ion.com/post/battery-recycling-regulations-compliance-guide-2caa3", "source": "Green Li-ion", "date": ""}, "S3": {"title": "Battery Stewardship - CalRecycle Home Page - CA.gov", "url": "https://calrecycle.ca.gov/epr/batteries/", "source": "CalRecycle Home Page (.gov)", "date": ""}, "S4": {"title": "State Recycling Laws", "url": "https://batterycouncil.org/policy-initiatives/state-recycling-laws/", "source": "Battery Council International", "date": ""}, "S5": {"title": "Responsible Battery Recycling Act of 2022", "url": "https://www.cirbasolutions.com/responsible-battery-recycling-act-of-2022/?srsltid=AYCX9vIupWP-xWJNr8Qv4XtrFac5e8rTqjjndF0nOLOtJPTtjbN1y_Y7", "source": "Cirba Solutions", "date": ""}}};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COLOUR MAP
+// ═══════════════════════════════════════════════════════════════════════════
+// Colours come from the topic's ontology (type_colors); unknown types use OTHER.
+const COLOR_MAP = Object.assign({}, GRAPH_DATA.type_colors || {}, { OTHER: "#94a3b8" });
+
+// Escape text that originates from scraped pages / LLM output before using innerHTML.
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+const SOURCES = GRAPH_DATA.sources || {};
+
+function nodeColor(type) {
+  return COLOR_MAP[type] || COLOR_MAP.OTHER;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SETUP
+// ═══════════════════════════════════════════════════════════════════════════
+const svg       = d3.select("#graph");
+const root      = d3.select("#root");
+const tooltip   = document.getElementById("tooltip");
+const container = document.getElementById("graph-container");
+
+let W = container.clientWidth;
+let H = container.clientHeight;
+
+// Zoom behaviour
+const zoom = d3.zoom()
+  .scaleExtent([0.1, 4])
+  .on("zoom", e => root.attr("transform", e.transform));
+svg.call(zoom);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FORCE SIMULATION
+// ═══════════════════════════════════════════════════════════════════════════
+const nodes = GRAPH_DATA.nodes.map(d => ({ ...d }));
+const links = GRAPH_DATA.links.map(d => ({ ...d }));
+
+// Compute degree for node sizing
+const degreeMap = {};
+links.forEach(l => {
+  degreeMap[l.source] = (degreeMap[l.source] || 0) + 1;
+  degreeMap[l.target] = (degreeMap[l.target] || 0) + 1;
+});
+nodes.forEach(n => { n.degree = degreeMap[n.id] || 1; });
+
+const maxDeg = Math.max(...nodes.map(n => n.degree));
+const minDeg = Math.min(...nodes.map(n => n.degree));
+const nodeRadius = d => {
+  const t = (d.degree - minDeg) / (maxDeg - minDeg || 1);
+  return 8 + t * 28;  // 8px → 36px
+};
+
+let simulation = d3.forceSimulation(nodes)
+  .force("link",   d3.forceLink(links).id(d => d.id).distance(120))
+  .force("charge", d3.forceManyBody().strength(-300))
+  .force("center", d3.forceCenter(W / 2, H / 2))
+  .force("collision", d3.forceCollide().radius(d => nodeRadius(d) + 6));
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DRAW LINKS
+// ═══════════════════════════════════════════════════════════════════════════
+const linkGroup = root.append("g").attr("class", "links");
+const labelGroup = root.append("g").attr("class", "edge-labels");
+const nodeGroup  = root.append("g").attr("class", "nodes");
+
+const link = linkGroup.selectAll("line")
+  .data(links)
+  .join("line")
+  .attr("class", "link")
+  .attr("marker-end", "url(#arrow)");
+
+const edgeLabel = labelGroup.selectAll("text")
+  .data(links)
+  .join("text")
+  .attr("class", "edge-label")
+  .text(d => d.label || "");
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DRAW NODES
+// ═══════════════════════════════════════════════════════════════════════════
+const node = nodeGroup.selectAll("g")
+  .data(nodes)
+  .join("g")
+  .attr("class", "node")
+  .call(d3.drag()
+    .on("start", dragStart)
+    .on("drag",  dragged)
+    .on("end",   dragEnd));
+
+// Circle
+node.append("circle")
+  .attr("r", nodeRadius)
+  .attr("fill", d => nodeColor(d.type));
+
+// Label (shown below circle for large nodes, hidden for tiny ones)
+node.append("text")
+  .attr("dy", d => nodeRadius(d) + 11)
+  .text(d => d.label.length > 20 ? d.label.slice(0, 18) + "…" : d.label)
+  .style("font-size", d => d.degree > 3 ? "11px" : "9px")
+  .style("opacity", d => d.degree > 2 ? 1 : 0.5);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SIMULATION TICK
+// ═══════════════════════════════════════════════════════════════════════════
+simulation.on("tick", () => {
+  link
+    .attr("x1", d => d.source.x)
+    .attr("y1", d => d.source.y)
+    .attr("x2", d => d.target.x)
+    .attr("y2", d => d.target.y);
+
+  edgeLabel
+    .attr("x", d => (d.source.x + d.target.x) / 2)
+    .attr("y", d => (d.source.y + d.target.y) / 2);
+
+  node.attr("transform", d => `translate(${d.x},${d.y})`);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TOOLTIP & HOVER
+// ═══════════════════════════════════════════════════════════════════════════
+let selectedNode = null;
+
+node.on("mouseover", (e, d) => {
+  const connections = links.filter(l =>
+    l.source.id === d.id || l.target.id === d.id
+  ).length;
+
+  tooltip.innerHTML = `
+    <div class="tt-name">${esc(d.label)}</div>
+    <div class="tt-type" style="color:${nodeColor(d.type)}">${esc(d.type)}${d.community >= 0 ? ` · community ${esc(d.community)}` : ""}</div>
+    ${d.description ? `<div class="tt-desc">${esc(d.description)}</div>` : ""}
+    ${(d.sources || []).length ? `<div class="tt-desc">Sources: ${d.sources.map(s => esc(s + " " + ((SOURCES[s] || {}).title || ""))).join("<br>")}</div>` : ""}
+    <div class="tt-connections"><span>${connections}</span> connection${connections !== 1 ? "s" : ""}</div>
+  `;
+  tooltip.classList.add("visible");
+  positionTooltip(e);
+})
+.on("mousemove", positionTooltip)
+.on("mouseleave", () => tooltip.classList.remove("visible"))
+.on("click", (e, d) => {
+  e.stopPropagation();
+  if (selectedNode === d.id) {
+    clearSelection();
+  } else {
+    selectNode(d);
+  }
+});
+
+svg.on("click", clearSelection);
+
+function positionTooltip(e) {
+  const rect = container.getBoundingClientRect();
+  let x = e.clientX - rect.left + 14;
+  let y = e.clientY - rect.top  - 10;
+  if (x + 280 > W) x = e.clientX - rect.left - 280;
+  tooltip.style.left = x + "px";
+  tooltip.style.top  = y + "px";
+}
+
+function selectNode(d) {
+  selectedNode = d.id;
+  const connectedIds = new Set([d.id]);
+  links.forEach(l => {
+    if (l.source.id === d.id) connectedIds.add(l.target.id);
+    if (l.target.id === d.id) connectedIds.add(l.source.id);
+  });
+
+  node.classed("selected", n => n.id === d.id);
+  node.classed("dimmed",   n => !connectedIds.has(n.id));
+  link.classed("highlighted", l => l.source.id === d.id || l.target.id === d.id);
+  link.classed("dimmed",      l => l.source.id !== d.id && l.target.id !== d.id);
+}
+
+function clearSelection() {
+  selectedNode = null;
+  node.classed("selected dimmed", false);
+  link.classed("highlighted dimmed", false);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DRAG
+// ═══════════════════════════════════════════════════════════════════════════
+function dragStart(e, d) {
+  if (!e.active) simulation.alphaTarget(0.3).restart();
+  d.fx = d.x; d.fy = d.y;
+}
+function dragged(e, d)   { d.fx = e.x; d.fy = e.y; }
+function dragEnd(e, d)   {
+  if (!e.active) simulation.alphaTarget(0);
+  d.fx = null; d.fy = null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LEGEND
+// ═══════════════════════════════════════════════════════════════════════════
+const typeCounts = {};
+nodes.forEach(n => { typeCounts[n.type] = (typeCounts[n.type] || 0) + 1; });
+
+const hiddenTypes = new Set();
+const legendEl = document.getElementById("legend");
+
+Object.keys(typeCounts).sort().forEach(type => {
+  const color = nodeColor(type);
+  const item = document.createElement("div");
+  item.className = "legend-item";
+  item.innerHTML = `
+    <div class="legend-dot" style="background:${color}"></div>
+    <span class="legend-name">${esc(type)}</span>
+    <span class="legend-count">${typeCounts[type]}</span>
+  `;
+  item.addEventListener("click", () => {
+    if (hiddenTypes.has(type)) {
+      hiddenTypes.delete(type);
+      item.classList.remove("disabled");
+    } else {
+      hiddenTypes.add(type);
+      item.classList.add("disabled");
+    }
+    applyTypeFilter();
+  });
+  legendEl.appendChild(item);
+});
+
+function applyTypeFilter() {
+  node.style("display", d => hiddenTypes.has(d.type) ? "none" : null);
+  link.style("display", d => {
+    const sHidden = hiddenTypes.has(d.source.type);
+    const tHidden = hiddenTypes.has(d.target.type);
+    return sHidden || tHidden ? "none" : null;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SEARCH
+// ═══════════════════════════════════════════════════════════════════════════
+document.getElementById("search").addEventListener("input", e => {
+  const q = e.target.value.toLowerCase().trim();
+  if (!q) { clearSelection(); return; }
+  const match = nodes.find(n => n.label.toLowerCase().includes(q));
+  if (match) selectNode(match);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════════════════════════════════
+document.getElementById("link-distance").addEventListener("input", e => {
+  simulation.force("link").distance(+e.target.value);
+  simulation.alpha(0.3).restart();
+});
+
+document.getElementById("charge").addEventListener("input", e => {
+  simulation.force("charge").strength(+e.target.value);
+  simulation.alpha(0.3).restart();
+});
+
+document.getElementById("label-threshold").addEventListener("input", e => {
+  const threshold = +e.target.value;
+  edgeLabel.classed("visible", d => {
+    const minDeg = Math.min(d.source.degree || 1, d.target.degree || 1);
+    return minDeg >= threshold;
+  });
+});
+
+document.getElementById("btn-reset").addEventListener("click", () => {
+  svg.transition().duration(500).call(
+    zoom.transform, d3.zoomIdentity.translate(0, 0).scale(1)
+  );
+});
+
+document.getElementById("btn-all").addEventListener("click", () => {
+  hiddenTypes.clear();
+  document.querySelectorAll(".legend-item").forEach(el => el.classList.remove("disabled"));
+  applyTypeFilter();
+  clearSelection();
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════════════════════════════════
+document.getElementById("stat-nodes").textContent = nodes.length;
+document.getElementById("stat-edges").textContent = links.length;
+document.getElementById("stat-communities").textContent =
+  GRAPH_DATA.communities !== undefined ? GRAPH_DATA.communities : "—";
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RESIZE
+// ═══════════════════════════════════════════════════════════════════════════
+window.addEventListener("resize", () => {
+  W = container.clientWidth;
+  H = container.clientHeight;
+  simulation.force("center", d3.forceCenter(W / 2, H / 2));
+  simulation.alpha(0.1).restart();
+});
+</script>
+</body>
+</html>

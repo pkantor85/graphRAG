@@ -1,0 +1,45 @@
+{
+  "_comment": "Copy this file to topics/<your_topic>.json and replace every value. Keys starting with '_' are ignored. See PIPELINE_INPUTS.md.",
+
+  "topic": "<one-line description of the research topic>",
+  "output_name": "<short_folder_name>",
+
+  "input_mode": "search",
+  "dataset_file": "",
+
+  "search_queries": ["<google query 1>", "<google query 2>"],
+  "results_per_query": 10,
+  "include_videos": false,
+  "topic_terms": ["<keyword or regex 1>", "<keyword or regex 2>"],
+  "min_text_chars": 500,
+  "min_topic_mentions_per_1k_words": 5,
+
+  "entity_types": {
+    "ORGANIZATION": "<what counts as an organization for this topic, with examples>",
+    "PERSON": "<which people matter>",
+    "CONCEPT": "<abstract ideas, metrics, doctrines>",
+    "<YOUR_TYPE>": "<description + examples>"
+  },
+  "relation_types": {
+    "PART_OF": "PERSON/ORGANIZATION belongs to an ORGANIZATION",
+    "<YOUR_RELATION>": "<SOURCE_TYPE> does <what> to <TARGET_TYPE>"
+  },
+
+  "questions": [
+    "<big-picture question that needs information from many documents>",
+    "<question comparing actors / positions>"
+  ],
+
+  "extraction_model": "gpt-4o-mini",
+  "query_model": "gpt-4o",
+  "max_articles": 10,
+  "chunk_size": 1024,
+  "chunk_overlap": 100,
+  "max_chunks_per_article": 6,
+  "max_paths_per_chunk": 20,
+  "num_workers": 4,
+  "max_cluster_size": 10,
+  "summary_context_chars": 20000,
+  "top_communities": 10,
+  "output_dir": "outputs"
+}
