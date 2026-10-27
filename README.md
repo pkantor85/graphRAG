@@ -44,13 +44,8 @@ graphrag/
 ├── requirements.txt               # Dependencies (requirements.lock.txt = exact tested versions)
 ├── tests/                         # Offline tests (fake LLM, no API calls)
 ├── .devcontainer/                 # Codespaces: runs setup_env.sh, recommends API-key secrets
-├── scrape_info.ipynb              # V1 web scraping & text enrichment
-├── graphrag_ai_copyright.ipynb    # V1 GraphRAG pipeline, queries & visualization
-├── graphrag_ai_copyright_colab.ipynb # Original-style pipeline for Google Colab
+├── scrape_info.ipynb              # Optional standalone scraping (articles + YouTube transcripts)
 ├── ai_copyright_dataset.csv       # Scraped dataset (6 on-topic article records)
-├── graph_data.json                # V1 extracted knowledge graph (nodes + edges)
-├── ai_copyright_graph.html        # V1 interactive visualization (generated output)
-├── graph_template.html            # V1 HTML/D3.js template for visualization
 └── .env                           # Optional local API keys (git-ignored)
 ```
 
@@ -91,37 +86,13 @@ Extraction and community summaries are cached per chunk/community in `outputs/<o
 re-runs and follow-up questions (`--ask "..."`) do not pay for the graph again. See
 [PIPELINE_INPUTS.md](./PIPELINE_INPUTS.md) for all inputs.
 
-### V1 notebooks
+### Collecting data with `scrape_info.ipynb` (optional)
 
-### Google Colab
-
-Upload [graphrag_ai_copyright_colab.ipynb](./graphrag_ai_copyright_colab.ipynb)
-to Colab and run its cells in order using a CPU runtime. It preserves the
-original notebook's sections 0–15, LlamaIndex extraction, hierarchical Leiden,
-community summaries, D3 visualization, and two-stage query engine. No helper
-modules or separate HTML template are needed.
-
-The default `INPUT_MODE = "csv"` prompts for the provided
-[ai_copyright_dataset.csv](./ai_copyright_dataset.csv); no SerpAPI key is needed.
-Set `OPENAI_API_KEY` in Colab Secrets with notebook access enabled, or use the
-hidden prompt. Defaults process three articles and up to three chunks per
-article. Extraction, summaries, and questions make paid OpenAI calls.
-
-For a new topic, edit `TOPIC`, `SEARCH_QUERIES`, `QUESTIONS`, `YOUR_QUESTION`,
-and `OUTPUT_NAME` in section 2, and both ontology lists in section 3.
-Choose `INPUT_MODE = "search"` and supply `SERPAPI_API_KEY` to discover URLs
-with SerpAPI and fetch article text with Trafilatura. This optional collection
-mode handles articles, not YouTube transcripts. Alternatively upload your own
-CSV with a `full_text` column. Changing only the topic label does not change
-the underlying evidence. Download the results ZIP before the Colab runtime ends.
-
-The provided dataset was collected by the separate scraping workflow below:
-SerpAPI supplies URLs/search metadata, while Trafilatura and the YouTube
-Transcript API supply article text and video transcripts respectively.
-The checked-in CSV currently contains 6 on-topic article records; quoted multiline
-article text means CSV line count is not record count.
-
-### Step 1 — Scrape content (`scrape_info.ipynb`)
+The provided [ai_copyright_dataset.csv](./ai_copyright_dataset.csv) was collected by this notebook:
+SerpAPI supplies URLs/search metadata, while Trafilatura and the YouTube Transcript API supply
+article text and video transcripts respectively. The checked-in CSV currently contains 6 on-topic
+article records; quoted multiline article text means CSV line count is not record count.
+V2's `input_mode: "search"` covers article collection without this notebook.
 
 Searches Google for AI copyright/IP articles and YouTube videos, then enriches them with full article text (via Trafilatura) and video transcripts (via YouTube Transcript API).
 You can swap out the search queries with any other search terms relevant to your project.
@@ -129,20 +100,9 @@ Pages with fewer than 500 characters (login walls, bot checks) or fewer than 5 t
 
 Output: `ai_copyright_dataset.csv`
 
-### Step 2 — Build the knowledge graph (`graphrag_ai_copyright.ipynb`)
+### Exploring the visualization
 
-Loads the scraped dataset and runs the full GraphRAG pipeline:
-
-- **Entity extraction** — uses GPT4o to extract entities and relationships (under the types defined in ontology).
-- **Relationship extraction** — maps typed relationships between entities using Pydantic-validated schemas
-- **Community detection** — runs Louvain clustering to group related entities into thematic communities
-- **Community summarization** — generates LLM summaries for each cluster
-- **Query engine** — answers complex questions by synthesizing context across communities using `gpt-4o`
-- **Export** — writes `graph_data.json` and renders `ai_copyright_graph.html`
-
-### Step 3 — Explore the visualization
-
-Open `ai_copyright_graph.html` in a browser. Features:
+Open `outputs/<output_name>/<output_name>_graph.html` in a browser. Features:
 
 - Force-directed graph layout (D3.js)
 - Filter nodes by entity type via the sidebar legend
